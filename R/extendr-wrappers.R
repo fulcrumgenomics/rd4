@@ -9,6 +9,7 @@
 NULL
 
 #' D4File class
+#'
 #' @examples
 #' d4 <- D4File$new(path)
 #' @export

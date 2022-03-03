@@ -1,3 +1,6 @@
+//! R bidings for the [D4](https://github.com/38/d4-format) file format.
+//!
+//! See R documentation for how to use this.
 use extendr_api::prelude::*;
 
 use d4::ptab::DecodeResult;
@@ -42,6 +45,7 @@ struct D4File {
 }
 
 impl D4File {
+    /// Open a D4 file for reading
     pub(crate) fn open(&self) -> ReaderWrapper {
         ReaderWrapper::open(self.path.as_str(), self.is_remote, self.track.as_deref())
     }
@@ -63,12 +67,14 @@ impl D4File {
 }
 
 /// D4File class
+///
 /// @examples
 /// d4 <- D4File$new(path)
 /// @export
 #[extendr]
 impl D4File {
     /// Method for making a new object
+    ///
     /// @export
     // TODO: I'm sticking with the same API philosohy as pyd4, which allows specifying a track in the file path
     fn new(path: &str) -> Self {
@@ -78,12 +84,14 @@ impl D4File {
     }
 
     /// Method for getting the path
+    ///
     /// @export
     fn get_path(&self) -> String {
         self.path.clone()
     }
 
     /// List all chromosomes in the [`D4File`]
+    ///
     /// @export
     fn list_chroms(&self) -> Vec<String> {
         self.open().get_chroms().iter().map(|x| x.name.clone()).collect()
@@ -102,9 +110,9 @@ impl D4File {
     ///
     /// To get the values for a specific track, the `D4File` must be opened with a track_spec on the path.
     /// i.e. `/path/to/file.d4:<track_name>`
+    ///
     /// @export
     // TODO - this is only returning data for a single track
-    // TODO - Add query and file info to return type
     // TODO - I've used the same naming as pyd4 with left and right
     fn query(&self, chr: &str, left: u32, right: u32) -> QueryResult {
         let result = match self.open() {
@@ -166,6 +174,7 @@ struct QueryResult {
 }
 
 impl QueryResult {
+    /// Create a new [`QueryResult`]
     // TODO: should the result type be more generic?
     fn new(query: Query, d4_file_path: String, d4_track: Option<String>, result: Vec<i32>) -> Self {
         Self { result, query, d4_file_path, d4_track }
@@ -177,19 +186,21 @@ impl QueryResult {
 #[extendr]
 impl QueryResult {
     /// Get the results of the query
+    ///
     /// @export
     pub fn results(&self) -> &[i32] {
         &self.result
     }
 
     /// Return the query used to get this result: (chr, left, right)
+    ///
     /// @export
-    // TODO - return a tuple? make a query obj?
     pub fn query(&self) -> Query {
         self.query.clone()
     }
 
     /// Get the D4 file that was queried
+    ///
     /// @export
     pub fn d4_file(&self) -> String {
         self.d4_file_path.clone()
@@ -198,6 +209,7 @@ impl QueryResult {
     /// Get the D4 track that was queried
     ///
     /// Returns and empty string if none was specified
+    ///
     /// @export
     pub fn d4_track(&self) -> String {
         self.d4_track.clone().unwrap_or_else(|| String::from(""))
@@ -228,18 +240,21 @@ impl Query {
 #[extendr]
 impl Query {
     /// Get the chromosome specified by this query
+    ///
     /// @export
     pub fn chr(&self) -> String {
         self.chr.clone()
     }
 
     /// Get the inclusive "left" position specified by this query
+    ///
     /// @export
     pub fn left(&self) -> u32 {
         self.left
     }
 
     /// Get the inclusive "right" position specified by this query
+    ///
     /// @export
     pub fn right(&self) -> u32 {
         self.right

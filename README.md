@@ -29,3 +29,6 @@ setwd("~/dev/rd4")
 rextendr::document()
 devtools::load_all(".")
 ```
+
+
+## Create a D4 file to test with

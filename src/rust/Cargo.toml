@@ -1,11 +1,16 @@
 [package]
 name = 'rd4'
 version = '0.1.0'
-edition = '2018'
+edition = '2021'
 
 [lib]
 crate-type = [ 'staticlib' ]
 name = 'rd4'
 
 [dependencies]
+d4 = "0.3.4"
 extendr-api = '*'
+
+[dev-dependencies]
+tempfile = "3.3.0"
+d4tools = "0.3.4"

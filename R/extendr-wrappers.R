@@ -18,7 +18,7 @@ D4File$new <- function(path) .Call(wrap__D4File__new, path)
 
 D4File$get_path <- function() .Call(wrap__D4File__get_path, self)
 
-D4File$chroms <- function() .Call(wrap__D4File__chroms, self)
+D4File$list_chroms <- function() .Call(wrap__D4File__list_chroms, self)
 
 D4File$list_tracks <- function() .Call(wrap__D4File__list_tracks, self)
 
@@ -28,6 +28,21 @@ D4File$query <- function(chr, left, right) .Call(wrap__D4File__query, self, chr,
 #' @usage NULL
 #' @export
 `$.D4File` <- function (self, name) { func <- D4File[[name]]; environment(func) <- environment(); func }
+
+#' A context object that holds onto the original query parameters
+#' @export
+Query <- new.env(parent = emptyenv())
+
+Query$chr <- function() .Call(wrap__Query__chr, self)
+
+Query$left <- function() .Call(wrap__Query__left, self)
+
+Query$right <- function() .Call(wrap__Query__right, self)
+
+#' @rdname Query
+#' @usage NULL
+#' @export
+`$.Query` <- function (self, name) { func <- Query[[name]]; environment(func) <- environment(); func }
 
 #' The object returned after querying a [`D4File`]
 #' @export

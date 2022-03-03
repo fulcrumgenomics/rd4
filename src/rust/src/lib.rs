@@ -85,7 +85,7 @@ impl D4File {
 
     /// List all chromosomes in the [`D4File`]
     /// @export
-    fn chroms(&self) -> Vec<String> {
+    fn list_chroms(&self) -> Vec<String> {
         self.open().get_chroms().iter().map(|x| x.name.clone()).collect()
     }
 
@@ -185,22 +185,22 @@ impl QueryResult {
     /// Return the query used to get this result: (chr, left, right)
     /// @export
     // TODO - return a tuple? make a query obj?
-    pub fn query(&self) -> &Query {
-        &self.query
+    pub fn query(&self) -> Query {
+        self.query.clone()
     }
 
     /// Get the D4 file that was queried
     /// @export
-    pub fn d4_file(&self) -> &str {
-        &self.d4_file_path
+    pub fn d4_file(&self) -> String {
+        self.d4_file_path.clone()
     }
 
     /// Get the D4 track that was queried
     ///
     /// Returns and empty string if none was specified
     /// @export
-    pub fn d4_track(&self) -> &str {
-        self.d4_track.as_deref().unwrap_or("")
+    pub fn d4_track(&self) -> String {
+        self.d4_track.clone().unwrap_or_else(|| String::from(""))
     }
 }
 
@@ -229,8 +229,8 @@ impl Query {
 impl Query {
     /// Get the chromosome specified by this query
     /// @export
-    pub fn chr(&self) -> &str {
-        &self.chr
+    pub fn chr(&self) -> String {
+        self.chr.clone()
     }
 
     /// Get the inclusive "left" position specified by this query
@@ -252,6 +252,7 @@ impl Query {
 extendr_module! {
     mod rd4;
     impl D4File;
+    impl Query;
     impl QueryResult;
 }
 
@@ -301,12 +302,12 @@ mod test {
 
         let file = D4File::new(data.to_str().unwrap());
         assert_eq!(file.list_tracks(), vec![String::from("")]);
-        assert_eq!(file.chroms(), vec![String::from("chr1")]);
+        assert_eq!(file.list_chroms(), vec![String::from("chr1")]);
         let result = file.query("chr1", 12, 22);
         assert_eq!(result.results(), &[0, 0, 0, 200, 0, 0, 0, 0, 100, 0]);
         assert_eq!(result.d4_file(), data.to_string_lossy());
         assert_eq!(result.d4_track(), String::from(""));
         let q = result.query();
-        assert_eq!(q, &Query::new(String::from("chr1"), 12, 22));
+        assert_eq!(q, Query::new(String::from("chr1"), 12, 22));
     }
 }

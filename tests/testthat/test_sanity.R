@@ -1,7 +1,3 @@
-test_that("1 + 1 is 2", {
-    expect_equal(1 + 1, 2)
-})
-
 test_that("A D4 File can be opened and metadata extracted", {
     test_file <- testthat::test_path("testdata", "test.d4")
     file <- D4File$new(test_file)

@@ -7,12 +7,16 @@ use d4::ptab::DecodeResult;
 use d4::stab::SecondaryTablePartReader;
 use d4::Chrom;
 
+/// Abstraction over the local and remote readers
 enum ReaderWrapper {
     LocalReader(d4::D4TrackReader),
     RemoteReader(d4::ssio::D4TrackReader<d4::ssio::http::HttpReader>),
 }
 
 impl ReaderWrapper {
+    /// Open a D4 file, handling the local or remote cases
+    ///
+    /// If a track is specified this will open the file to read the specified track.
     fn open(path: &str, is_remote: bool, track: Option<&str>) -> ReaderWrapper {
         if is_remote {
             let conn = d4::ssio::http::HttpReader::new(path).unwrap();
@@ -28,6 +32,7 @@ impl ReaderWrapper {
         }
     }
 
+    /// Extract the chromosomes from a D4 file
     fn get_chroms(&self) -> &[Chrom] {
         match self {
             Self::LocalReader(local) => local.header().chrom_list(),

@@ -1,0 +1,11 @@
+[package]
+name = 'rd4'
+version = '0.1.0'
+edition = '2018'
+
+[lib]
+crate-type = [ 'staticlib' ]
+name = 'rd4'
+
+[dependencies]
+extendr-api = '*'

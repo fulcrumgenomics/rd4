@@ -1,3 +1,4 @@
+//! Implementation of [`D4Reader`] for files on a filesystem.
 use d4::ptab::DecodeResult;
 use d4::stab::SecondaryTablePartReader;
 use d4::Chrom;
@@ -5,7 +6,7 @@ use d4::Chrom;
 use crate::{d4_reader::D4Reader, Query, QueryResult};
 
 #[derive(Clone, Debug)]
-pub struct LocalD4Reader {
+pub(crate) struct LocalD4Reader {
     path: String,
 }
 

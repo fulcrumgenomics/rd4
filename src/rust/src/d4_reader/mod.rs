@@ -17,7 +17,7 @@ pub(crate) mod local_d4_reader;
 // by these trait functions internally anyways.
 
 /// The trait that defines how a D4 source can be accessed
-pub trait D4Reader: Debug {
+pub(crate) trait D4Reader: Debug {
     /// Create a [`D4Reader`] that can query the given tracks.
     fn new(source: String) -> Self
     where

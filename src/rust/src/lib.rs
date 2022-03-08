@@ -102,21 +102,21 @@ impl QueryResult {
     /// Get the results of the query
     ///
     /// @export
-    pub fn results(&self) -> &[i32] {
+    fn results(&self) -> &[i32] {
         &self.result
     }
 
     /// Return the [`Query`] used to get this result
     ///
     /// @export
-    pub fn query(&self) -> Query {
+    fn query(&self) -> Query {
         self.query.clone()
     }
 
     /// Get the D4 file that was queried
     ///
     /// @export
-    pub fn source(&self) -> String {
+    fn source(&self) -> String {
         self.source.clone()
     }
 
@@ -125,13 +125,14 @@ impl QueryResult {
     /// Returns and empty string if none was specified
     ///
     /// @export
-    pub fn track(&self) -> String {
+    fn track(&self) -> String {
         self.track.clone().unwrap_or_else(|| String::from(""))
     }
 }
 
+/// A [`Query`] holds onto user input `chr`, `left`, and `right` specifiers.
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
-pub struct Query {
+struct Query {
     /// The specified chromosome
     chr: String,
     /// The inclusive start of the query
@@ -154,21 +155,21 @@ impl Query {
     /// Get the chromosome specified by this query
     ///
     /// @export
-    pub fn chr(&self) -> String {
+    fn chr(&self) -> String {
         self.chr.clone()
     }
 
     /// Get the inclusive "left" position specified by this query
     ///
     /// @export
-    pub fn left(&self) -> u32 {
+    fn left(&self) -> u32 {
         self.left
     }
 
     /// Get the inclusive "right" position specified by this query
     ///
     /// @export
-    pub fn right(&self) -> u32 {
+    fn right(&self) -> u32 {
         self.right
     }
 }

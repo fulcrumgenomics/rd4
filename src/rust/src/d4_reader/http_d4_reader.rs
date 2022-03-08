@@ -6,7 +6,7 @@ use crate::{d4_reader::D4Reader, Query, QueryResult};
 
 /// Access D4 sources over HTTP
 #[derive(Clone, Debug)]
-pub struct HttpD4Reader {
+pub(crate) struct HttpD4Reader {
     /// The URL of the D4 source
     source: String,
 }

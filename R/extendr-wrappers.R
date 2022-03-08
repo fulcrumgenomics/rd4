@@ -8,27 +8,30 @@
 #' @useDynLib rd4, .registration = TRUE
 NULL
 
-#' D4File class
+#' D4Source class
+#'
+#' This is the primary way of interacting with D4 sources.
 #'
 #' @examples
 #' d4 <- D4File$new(path)
+#' chroms <- d4$get_chroms()
 #' @export
-D4File <- new.env(parent = emptyenv())
+D4Source <- new.env(parent = emptyenv())
 
-D4File$new <- function(path) .Call(wrap__D4File__new, path)
+D4Source$new <- function(source) .Call(wrap__D4Source__new, source)
 
-D4File$get_path <- function() .Call(wrap__D4File__get_path, self)
+D4Source$get_source <- function() .Call(wrap__D4Source__get_source, self)
 
-D4File$list_chroms <- function() .Call(wrap__D4File__list_chroms, self)
+D4Source$get_chroms <- function() .Call(wrap__D4Source__get_chroms, self)
 
-D4File$list_tracks <- function() .Call(wrap__D4File__list_tracks, self)
+D4Source$get_tracks <- function() .Call(wrap__D4Source__get_tracks, self)
 
-D4File$query <- function(chr, left, right) .Call(wrap__D4File__query, self, chr, left, right)
+D4Source$query <- function(chr, left, right, track) .Call(wrap__D4Source__query, self, chr, left, right, track)
 
-#' @rdname D4File
+#' @rdname D4Source
 #' @usage NULL
 #' @export
-`$.D4File` <- function (self, name) { func <- D4File[[name]]; environment(func) <- environment(); func }
+`$.D4Source` <- function (self, name) { func <- D4Source[[name]]; environment(func) <- environment(); func }
 
 #' A context object that holds onto the original query parameters
 #' @export
@@ -45,7 +48,7 @@ Query$right <- function() .Call(wrap__Query__right, self)
 #' @export
 `$.Query` <- function (self, name) { func <- Query[[name]]; environment(func) <- environment(); func }
 
-#' The object returned after querying a [`D4File`]
+#' The object returned after querying a [`D4Source`]
 #' @export
 QueryResult <- new.env(parent = emptyenv())
 
@@ -53,9 +56,9 @@ QueryResult$results <- function() .Call(wrap__QueryResult__results, self)
 
 QueryResult$query <- function() .Call(wrap__QueryResult__query, self)
 
-QueryResult$d4_file <- function() .Call(wrap__QueryResult__d4_file, self)
+QueryResult$source <- function() .Call(wrap__QueryResult__source, self)
 
-QueryResult$d4_track <- function() .Call(wrap__QueryResult__d4_track, self)
+QueryResult$track <- function() .Call(wrap__QueryResult__track, self)
 
 #' @rdname QueryResult
 #' @usage NULL

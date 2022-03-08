@@ -1,192 +1,101 @@
-//! R bidings for the [D4](https://github.com/38/d4-format) file format.
+//! R bindings for the [D4](https://github.com/38/d4-format) file format.
 //!
 //! See R documentation for how to use this.
+
+mod d4_reader;
+use d4_reader::{http_d4_reader::HttpD4Reader, local_d4_reader::LocalD4Reader, D4Reader};
 use extendr_api::prelude::*;
+use serde::{Deserialize, Serialize};
 
-use d4::ptab::DecodeResult;
-use d4::stab::SecondaryTablePartReader;
-use d4::Chrom;
-
-/// Abstraction over the local and remote readers
-enum ReaderWrapper {
-    LocalReader(d4::D4TrackReader),
-    RemoteReader(d4::ssio::D4TrackReader<d4::ssio::http::HttpReader>),
-}
-
-impl ReaderWrapper {
-    /// Open a D4 file, handling the local or remote cases
-    ///
-    /// If a track is specified this will open the file to read the specified track.
-    fn open(path: &str, is_remote: bool, track: Option<&str>) -> ReaderWrapper {
-        if is_remote {
-            let conn = d4::ssio::http::HttpReader::new(path).unwrap();
-            let reader = d4::ssio::D4TrackReader::from_reader(conn, track).expect("todo");
-            Self::RemoteReader(reader)
-        } else {
-            // TODO: D4TrackReader::open splits the path on `:` and takes anything to the right as a track specifier
-            // There should be a way to create a reader like remote with the optional track name
-            let track_spec =
-                if let Some(track) = track { [path, track].join(":") } else { path.to_string() };
-            let local_reader = d4::D4TrackReader::open(&track_spec).expect("todo");
-            Self::LocalReader(local_reader)
-        }
-    }
-
-    /// Extract the chromosomes from a D4 file
-    fn get_chroms(&self) -> &[Chrom] {
-        match self {
-            Self::LocalReader(local) => local.header().chrom_list(),
-            Self::RemoteReader(remote) => remote.chrom_list(),
-        }
-    }
-}
-
-/// The R object for reading a D4 file
+/// The R object for reading from a D4 source.
+///
+/// **Note**: the source path usage in these bindings differs from both d4 and pyd4 in that this library
+/// expects the "track" to be passed in separately when performing a query, instead of creating a "D4File"
+/// that implicitly opens a specific track that is appended to the path.
 #[derive(Debug)]
-struct D4File {
-    path: String,
-    is_remote: bool,
-    track: Option<String>,
+struct D4Source {
+    source: String,
+    inner: Box<dyn D4Reader>,
 }
 
-impl D4File {
-    /// Open a D4 file for reading
-    pub(crate) fn open(&self) -> ReaderWrapper {
-        ReaderWrapper::open(self.path.as_str(), self.is_remote, self.track.as_deref())
-    }
-
-    /// Parse the path to try to extract a track
-    fn parse_path(path: &str) -> (String, Option<String>) {
-        if path.starts_with("http://") || path.starts_with("https://") {
-            if let Some(split_pos) = path.rfind('#') {
-                (path[..split_pos].to_string(), Some(path[split_pos + 1..].to_string()))
-            } else {
-                (path.to_string(), None)
-            }
-        } else if let Some(split_pos) = path.rfind(':') {
-            (path[..split_pos].to_string(), Some(path[split_pos + 1..].to_string()))
-        } else {
-            (path.to_string(), None)
-        }
-    }
-}
-
-/// D4File class
+/// D4Source class
+///
+/// This is the primary way of interacting with D4 sources.
 ///
 /// @examples
 /// d4 <- D4File$new(path)
+/// chroms <- d4$get_chroms()
 /// @export
-#[extendr]
-impl D4File {
-    /// Method for making a new object
+#[extendr(use_try_from = true)]
+impl D4Source {
+    /// Method for making a new [`D4Source`]  object.
     ///
+    /// **Note**: This expects a plain path, with no track appended to the end.
     /// @export
-    // TODO: I'm sticking with the same API philosohy as pyd4, which allows specifying a track in the file path
-    fn new(path: &str) -> Self {
-        let is_remote = path.starts_with("http://") || path.starts_with("https://");
-        let (path, track) = Self::parse_path(path);
-        Self { path, is_remote, track }
+    fn new(source: &str) -> Self {
+        let inner: Box<dyn D4Reader> =
+            if source.starts_with("http://") || source.starts_with("https://") {
+                Box::new(HttpD4Reader::new(source.to_string()))
+            } else {
+                Box::new(LocalD4Reader::new(source.to_string()))
+            };
+        Self { source: source.to_string(), inner }
     }
 
-    /// Method for getting the path
+    /// Method for getting the original source path used to create this object
     ///
     /// @export
-    fn get_path(&self) -> String {
-        self.path.clone()
+    fn get_source(&self) -> String {
+        self.source.clone()
     }
 
-    /// List all chromosomes in the [`D4File`]
+    /// List all chromosomes in the [`D4Source`]
     ///
     /// @export
-    fn list_chroms(&self) -> Vec<String> {
-        self.open().get_chroms().iter().map(|x| x.name.clone()).collect()
+    fn get_chroms(&self) -> Vec<String> {
+        self.inner.get_chroms().iter().map(|x| x.name.clone()).collect()
     }
 
-    /// List all tracks in the [`D4File`]
+    /// List all tracks in the [`D4Source`]
     /// @export
-    fn list_tracks(&self) -> Vec<String> {
-        let mut tracks = vec![];
-        d4::find_tracks_in_file(&self.path, |_| true, &mut tracks)
-            .expect("Failed to extract tracks from file.");
-        tracks.into_iter().map(|x| x.to_string_lossy().to_string()).collect()
+    fn get_tracks(&self) -> Vec<String> {
+        self.inner.get_tracks()
     }
 
-    /// Get values in region
+    /// Query the [`D4Source`] for the depths over the specified region
     ///
-    /// To get the values for a specific track, the `D4File` must be opened with a track_spec on the path.
-    /// i.e. `/path/to/file.d4:<track_name>`
-    ///
+    /// # Arguments
+    /// - `chr` - the chromosome to query
+    /// - `left` - the inclusive start position
+    /// - `right` - the exclusive end position
+    /// - `track` - the optional track to query, if NA, the first track in the source will be queried
     /// @export
-    // TODO - this is only returning data for a single track
-    // TODO - I've used the same naming as pyd4 with left and right
-    fn query(&self, chr: &str, left: u32, right: u32) -> QueryResult {
-        let result = match self.open() {
-            ReaderWrapper::RemoteReader(mut inner) => {
-                let iter: Box<dyn Iterator<Item = i32>> =
-                    Box::new(inner.get_view(chr, left, right).expect("todo").map(|res| {
-                        if let Ok((_, value)) = res {
-                            value
-                        } else {
-                            0
-                        }
-                    }));
-                iter
-            }
-            ReaderWrapper::LocalReader(mut inner) => {
-                let partition = inner.split(None).expect("todo");
-                let chr = chr.to_string();
-                let iter: Box<dyn Iterator<Item = i32>> =
-                    Box::new(partition.into_iter().flat_map(move |(mut ptab, mut stab)| {
-                        let (part_chr, begin, end) = ptab.region();
-                        let part_chr = part_chr.to_string();
-                        let pd = ptab.to_codec();
-                        (if part_chr == chr { left.max(begin)..right.min(end) } else { 0..0 }).map(
-                            move |pos| match pd.decode(pos as usize) {
-                                DecodeResult::Definitely(value) => value,
-                                DecodeResult::Maybe(value) => {
-                                    if let Some(st_value) = stab.decode(pos) {
-                                        st_value
-                                    } else {
-                                        value
-                                    }
-                                }
-                            },
-                        )
-                    }));
-                iter
-            }
-        }
-        .collect();
-        QueryResult::new(
-            Query::new(chr.to_string(), left, right),
-            self.path.clone(),
-            self.track.clone(),
-            result,
-        )
+    fn query(&self, chr: String, left: u32, right: u32, track: Option<String>) -> QueryResult {
+        self.inner.query(chr, left, right, track)
     }
 }
 
 /// Helper struct to hold onto the result of a query, and the context of the query.
-struct QueryResult {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryResult {
     /// The depths from the query
     result: Vec<i32>,
     /// The query used to generate this result
     query: Query,
-    /// The d4 file being queried
-    d4_file_path: String,
-    /// The track of the d4 file, if specified
-    d4_track: Option<String>,
+    /// The d4 source being queried
+    source: String,
+    /// The track of the d4 source, if specified
+    track: Option<String>,
 }
 
 impl QueryResult {
     /// Create a new [`QueryResult`]
-    // TODO: should the result type be more generic?
     fn new(query: Query, d4_file_path: String, d4_track: Option<String>, result: Vec<i32>) -> Self {
-        Self { result, query, d4_file_path, d4_track }
+        Self { result, query, source: d4_file_path, track: d4_track }
     }
 }
 
-/// The object returned after querying a [`D4File`]
+/// The object returned after querying a [`D4Source`]
 /// @export
 #[extendr]
 impl QueryResult {
@@ -197,7 +106,7 @@ impl QueryResult {
         &self.result
     }
 
-    /// Return the query used to get this result: (chr, left, right)
+    /// Return the [`Query`] used to get this result
     ///
     /// @export
     pub fn query(&self) -> Query {
@@ -207,8 +116,8 @@ impl QueryResult {
     /// Get the D4 file that was queried
     ///
     /// @export
-    pub fn d4_file(&self) -> String {
-        self.d4_file_path.clone()
+    pub fn source(&self) -> String {
+        self.source.clone()
     }
 
     /// Get the D4 track that was queried
@@ -216,13 +125,13 @@ impl QueryResult {
     /// Returns and empty string if none was specified
     ///
     /// @export
-    pub fn d4_track(&self) -> String {
-        self.d4_track.clone().unwrap_or_else(|| String::from(""))
+    pub fn track(&self) -> String {
+        self.track.clone().unwrap_or_else(|| String::from(""))
     }
 }
 
-#[derive(Debug, Clone, PartialEq, PartialOrd, Eq)]
-struct Query {
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Serialize, Deserialize)]
+pub struct Query {
     /// The specified chromosome
     chr: String,
     /// The inclusive start of the query
@@ -240,8 +149,6 @@ impl Query {
 
 /// A context object that holds onto the original query parameters
 /// @export
-// TODO: returning an R `list!` gives me a mem error and I'm not sure why
-//       this is a workaround for now
 #[extendr]
 impl Query {
     /// Get the chromosome specified by this query
@@ -271,7 +178,7 @@ impl Query {
 // See corresponding C code in `entrypoint.c`.
 extendr_module! {
     mod rd4;
-    impl D4File;
+    impl D4Source;
     impl Query;
     impl QueryResult;
 }
@@ -288,7 +195,7 @@ mod test {
     use extendr_api::prelude::*;
     use tempfile::TempDir;
 
-    use crate::{D4File, Query};
+    use crate::{D4Source, Query};
 
     fn create_d4_file<P: AsRef<Path>>(dir: P) -> PathBuf {
         let values = vec![(10, 100), (15, 200), (20, 100), (50, 1000)];
@@ -320,14 +227,14 @@ mod test {
         let tempdir = TempDir::new().unwrap();
         let data = create_d4_file(tempdir.path());
 
-        let file = D4File::new(data.to_str().unwrap());
-        assert_eq!(file.list_tracks(), vec![String::from("")]);
-        assert_eq!(file.list_chroms(), vec![String::from("chr1")]);
-        let result = file.query("chr1", 12, 22);
-        assert_eq!(result.results(), &[0, 0, 0, 200, 0, 0, 0, 0, 100, 0]);
-        assert_eq!(result.d4_file(), data.to_string_lossy());
-        assert_eq!(result.d4_track(), String::from(""));
-        let q = result.query();
+        let file = D4Source::new(data.to_str().unwrap());
+        assert_eq!(file.get_tracks(), vec![String::from("")]);
+        assert_eq!(file.get_chroms(), vec![String::from("chr1")]);
+        let r = file.query(String::from("chr1"), 12, 22, None);
+        assert_eq!(r.results(), &[0, 0, 0, 200, 0, 0, 0, 0, 100, 0]);
+        assert_eq!(r.source(), data.to_string_lossy());
+        assert_eq!(r.track(), String::from(""));
+        let q = r.query();
         assert_eq!(q, Query::new(String::from("chr1"), 12, 22));
     }
 }

@@ -33,16 +33,6 @@ impl D4Reader for LocalD4Reader {
         self.path.clone()
     }
 
-    fn query(&self, chr: String, left: u32, right: u32, track: Option<String>) -> QueryResult {
-        let query = Query::new(chr, left, right);
-
-        if let Some(track) = track {
-            self.query_track(&query, Some(&track))
-        } else {
-            self.query_track(&query, None)
-        }
-    }
-
     fn query_track(&self, query: &Query, track: Option<&str>) -> QueryResult {
         let mut reader = self.open(track);
         let partition =

@@ -3,6 +3,7 @@
 //! See R documentation for how to use this.
 
 mod d4_reader;
+use d4::Chrom;
 use d4_reader::{http_d4_reader::HttpD4Reader, local_d4_reader::LocalD4Reader, D4Reader};
 use extendr_api::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -52,14 +53,19 @@ impl D4Source {
     /// List all chromosomes in the [`D4Source`]
     ///
     /// @export
-    fn get_chroms(&self) -> Vec<String> {
-        self.inner.get_chroms().iter().map(|x| x.name.clone()).collect()
+    fn get_chroms(&self) -> List {
+        List::from_values(self.inner.get_chroms().into_iter().map(ChromWrapper))
+    }
+
+    /// @export
+    fn custom(&self) -> String {
+        String::from("CUSTOM")
     }
 
     /// List all tracks in the [`D4Source`]
     /// @export
-    fn get_tracks(&self) -> Vec<String> {
-        self.inner.get_tracks()
+    fn get_tracks(&self) -> Strings {
+        Strings::from_values(self.inner.get_tracks())
     }
 
     /// Query the [`D4Source`] for the depths over the specified region
@@ -174,6 +180,15 @@ impl Query {
     }
 }
 
+/// Wrapper type for converting a [`Chrom`] into an R List.
+struct ChromWrapper(Chrom);
+impl From<ChromWrapper> for Robj {
+    fn from(c: ChromWrapper) -> Self {
+        // The cast o i32 forces this to be a "Real" integer in R, otherwise it is treated as a real (aka float)
+        r!(list!(name = c.0.name, size = c.0.size as i32))
+    }
+}
+
 // Macro to generate exports.
 // This ensures exported functions are registered with R.
 // See corresponding C code in `entrypoint.c`.
@@ -225,17 +240,24 @@ mod test {
 
     #[test]
     fn test_simple_case() {
-        let tempdir = TempDir::new().unwrap();
-        let data = create_d4_file(tempdir.path());
+        test! {
+            let tempdir = TempDir::new().unwrap();
+            let data = create_d4_file(tempdir.path());
 
-        let file = D4Source::new(data.to_str().unwrap());
-        assert_eq!(file.get_tracks(), vec![String::from("")]);
-        assert_eq!(file.get_chroms(), vec![String::from("chr1")]);
-        let r = file.query(String::from("chr1"), 12, 22, None);
-        assert_eq!(r.results(), &[0, 0, 0, 200, 0, 0, 0, 0, 100, 0]);
-        assert_eq!(r.source(), data.to_string_lossy());
-        assert_eq!(r.track(), String::from(""));
-        let q = r.query();
-        assert_eq!(q, Query::new(String::from("chr1"), 12, 22));
+            let file = D4Source::new(data.to_str().unwrap());
+            let tracks = file.get_tracks();
+            eprintln!("Length is {:?}", tracks.len());
+            assert_eq!(file.get_tracks().elt(0), "");
+            assert_eq!(file.get_chroms().len(), 1);
+            assert_eq!(file.get_chroms().elt(0)?.dollar("name")?, r!("chr1"));
+            assert_eq!(file.get_chroms().elt(0)?.dollar("size")?, r!(1000));
+            // assert_eq!(file.get_chroms(), vec![String::from("chr1")]);
+            // let r = file.query(String::from("chr1"), 12, 22, None);
+            // assert_eq!(r.results(), &[0, 0, 0, 200, 0, 0, 0, 0, 100, 0]);
+            // assert_eq!(r.source(), data.to_string_lossy());
+            // assert_eq!(r.track(), String::from(""));
+            // let q = r.query();
+            // assert_eq!(q, Query::new(String::from("chr1"), 12, 22));
+        }
     }
 }

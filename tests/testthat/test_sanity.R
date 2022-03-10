@@ -3,7 +3,7 @@ test_that("A D4 File can be opened and metadata extracted", {
     file <- D4Source$new(test_file)
     expect_equal(length(file$get_tracks()), 1)
     expect_equal(length(file$get_chroms()), 1)
-    expect_equal(file$get_chroms(), c("chr1"))
+    expect_equal(file$get_chroms(), list(list("name"="chr1", "size"=1000)))
 })
 
 test_that("A D4 File can be opened and queried", {

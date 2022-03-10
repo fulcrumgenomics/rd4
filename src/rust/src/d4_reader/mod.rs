@@ -41,7 +41,10 @@ pub(crate) trait D4Reader: Debug {
     /// - `track` - the optional track to query, if None, the first track in the source will be queried
     ///
     /// **Note**: This function will change to support queries over multiple tracks at a future time.
-    fn query(&self, chr: String, left: u32, right: u32, track: Option<String>) -> QueryResult;
+    fn query(&self, chr: String, left: u32, right: u32, track: Option<String>) -> QueryResult {
+        let query = Query::new(chr, left, right);
+        self.query_track(&query, track.as_deref())
+    }
 
     /// Query a single track with the given [`Query`].
     ///

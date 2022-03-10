@@ -24,6 +24,8 @@ D4Source$get_source <- function() .Call(wrap__D4Source__get_source, self)
 
 D4Source$get_chroms <- function() .Call(wrap__D4Source__get_chroms, self)
 
+D4Source$custom <- function() .Call(wrap__D4Source__custom, self)
+
 D4Source$get_tracks <- function() .Call(wrap__D4Source__get_tracks, self)
 
 D4Source$query <- function(chr, left, right, track) .Call(wrap__D4Source__query, self, chr, left, right, track)
@@ -32,6 +34,9 @@ D4Source$query <- function(chr, left, right, track) .Call(wrap__D4Source__query,
 #' @usage NULL
 #' @export
 `$.D4Source` <- function (self, name) { func <- D4Source[[name]]; environment(func) <- environment(); func }
+
+#' @export
+`[[.D4Source` <- `$.D4Source`
 
 #' A context object that holds onto the original query parameters
 #' @export
@@ -47,6 +52,9 @@ Query$right <- function() .Call(wrap__Query__right, self)
 #' @usage NULL
 #' @export
 `$.Query` <- function (self, name) { func <- Query[[name]]; environment(func) <- environment(); func }
+
+#' @export
+`[[.Query` <- `$.Query`
 
 #' The object returned after querying a [`D4Source`]
 #' @export
@@ -64,4 +72,7 @@ QueryResult$track <- function() .Call(wrap__QueryResult__track, self)
 #' @usage NULL
 #' @export
 `$.QueryResult` <- function (self, name) { func <- QueryResult[[name]]; environment(func) <- environment(); func }
+
+#' @export
+`[[.QueryResult` <- `$.QueryResult`
 

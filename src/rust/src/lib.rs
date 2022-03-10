@@ -211,7 +211,7 @@ mod test {
     use extendr_api::prelude::*;
     use tempfile::TempDir;
 
-    use crate::{D4Source, Query};
+    use crate::D4Source;
 
     fn create_d4_file<P: AsRef<Path>>(dir: P) -> PathBuf {
         let values = vec![(10, 100), (15, 200), (20, 100), (50, 1000)];

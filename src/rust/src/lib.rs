@@ -245,16 +245,17 @@ mod test {
             let data = create_d4_file(tempdir.path());
 
             let file = D4Source::new(data.to_str().unwrap());
-            let tracks = file.get_tracks();
-            eprintln!("Length is {:?}", tracks.len());
+
             assert_eq!(file.get_tracks().elt(0), "");
             assert_eq!(file.get_chroms().len(), 1);
             assert_eq!(file.get_chroms().elt(0)?.dollar("name")?, r!("chr1"));
             assert_eq!(file.get_chroms().elt(0)?.dollar("size")?, r!(1000_i32));
+
             let r = file.query(String::from("chr1"), 12, 22, None);
             assert_eq!(r.results(), &[0, 0, 0, 200, 0, 0, 0, 0, 100, 0]);
             assert_eq!(r.source(), data.to_string_lossy());
             assert_eq!(r.track(), String::from(""));
+
             let q = r.query();
             assert_eq!(q, Query::new(String::from("chr1"), 12, 22));
         }

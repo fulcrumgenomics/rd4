@@ -211,7 +211,7 @@ mod test {
     use extendr_api::prelude::*;
     use tempfile::TempDir;
 
-    use crate::D4Source;
+    use crate::{D4Source, Query};
 
     fn create_d4_file<P: AsRef<Path>>(dir: P) -> PathBuf {
         let values = vec![(10, 100), (15, 200), (20, 100), (50, 1000)];
@@ -250,14 +250,13 @@ mod test {
             assert_eq!(file.get_tracks().elt(0), "");
             assert_eq!(file.get_chroms().len(), 1);
             assert_eq!(file.get_chroms().elt(0)?.dollar("name")?, r!("chr1"));
-            assert_eq!(file.get_chroms().elt(0)?.dollar("size")?, r!(1000));
-            // assert_eq!(file.get_chroms(), vec![String::from("chr1")]);
-            // let r = file.query(String::from("chr1"), 12, 22, None);
-            // assert_eq!(r.results(), &[0, 0, 0, 200, 0, 0, 0, 0, 100, 0]);
-            // assert_eq!(r.source(), data.to_string_lossy());
-            // assert_eq!(r.track(), String::from(""));
-            // let q = r.query();
-            // assert_eq!(q, Query::new(String::from("chr1"), 12, 22));
+            assert_eq!(file.get_chroms().elt(0)?.dollar("size")?, r!(1000_i32));
+            let r = file.query(String::from("chr1"), 12, 22, None);
+            assert_eq!(r.results(), &[0, 0, 0, 200, 0, 0, 0, 0, 100, 0]);
+            assert_eq!(r.source(), data.to_string_lossy());
+            assert_eq!(r.track(), String::from(""));
+            let q = r.query();
+            assert_eq!(q, Query::new(String::from("chr1"), 12, 22));
         }
     }
 }

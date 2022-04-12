@@ -79,6 +79,44 @@ impl D4Source {
     fn query(&self, chr: String, left: u32, right: u32, track: Option<String>) -> QueryResult {
         self.inner.query(chr, left, right, track)
     }
+
+    fn resample(
+        &self,
+        chr: String,
+        left: u32,
+        right: u32,
+        track: Option<String>,
+        method: Option<String>,
+        bin_size: Option<u32>,
+        allow_bin_size_adjustment: Option<bool>,
+    ) {
+        let bin_size = bin_size.unwrap_or(1_000);
+        let query = Query::new(chr, left, right);
+        // TODO
+        // let bin_size = self.inner.adjust_bin_size(bin_size, allow_bin_size_adjustment);
+
+        let split = |q: &Query| -> Vec<Query> {
+            let mut ret = vec![];
+            let mut begin = q.left;
+            let mut end = q.right;
+            while begin < end {
+                let bin_end = std::cmp::min(begin + bin_size, end);
+                ret.push(Query::new(q.chr.clone(), begin, bin_end));
+                begin = bin_end;
+            }
+            ret
+        };
+        let splitted = self.for_each_region(&[query], split);
+
+        // Now compute the mean or median for each of the splitted after making tasks?
+        // https://github.com/38/d4-format/blob/714d6a7f0499dc833db39c01c7f1b4332dccee68/pyd4/src/d4file.rs#L194
+    }
+}
+
+impl D4Source {
+    fn for_each_region<T, F: Fn(&Query) -> T>(&self, queries: &[Query], func: F) -> Vec<T> {
+        queries.iter().map(|q| func(q)).collect()
+    }
 }
 
 /// Helper struct to hold onto the result of a query, and the context of the query.

@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{any::Any, fmt::Debug};
 
 use d4::Chrom;
 
@@ -51,4 +51,8 @@ pub(crate) trait D4Reader: Debug {
     /// This method is intended to be used internally by the `query` method when that method
     /// supports queries over multiple tracks at once.
     fn query_track(&self, query: &Query, track: Option<&str>) -> QueryResult;
+
+    fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64>;
+
+    fn as_any(&self) -> &dyn Any;
 }

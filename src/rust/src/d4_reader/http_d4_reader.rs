@@ -1,4 +1,6 @@
 //! Implementation of [`D4Reader`] on remote files over HTTP.
+use std::any::Any;
+
 use d4::ssio::http::HttpReader;
 use d4::Chrom;
 
@@ -44,6 +46,14 @@ impl D4Reader for HttpD4Reader {
             .map(|res| if let Ok((_, value)) = res { value } else { 0 })
             .collect();
         QueryResult::new(query.clone(), self.source.clone(), track.map(|x| x.to_owned()), result)
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64> {
+        todo!()
     }
 }
 

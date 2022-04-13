@@ -3,7 +3,7 @@
 //! See R documentation for how to use this.
 
 mod d4_reader;
-use d4::Chrom;
+use d4::{task::IntoTaskVec, Chrom};
 use d4_reader::{http_d4_reader::HttpD4Reader, local_d4_reader::LocalD4Reader, D4Reader};
 use extendr_api::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -86,38 +86,49 @@ impl D4Source {
         left: u32,
         right: u32,
         track: Option<String>,
-        method: Option<String>,
-        bin_size: Option<u32>,
+        method: String,
+        bin_size: Option<i32>,
         allow_bin_size_adjustment: Option<bool>,
     ) {
-        let bin_size = bin_size.unwrap_or(1_000);
+        let bin_size = bin_size.unwrap_or(1_000) as u32;
         let query = Query::new(chr, left, right);
-        // TODO
+        // TODO - add adjust binsize method / logic
         // let bin_size = self.inner.adjust_bin_size(bin_size, allow_bin_size_adjustment);
 
-        let split = |q: &Query| -> Vec<Query> {
-            let mut ret = vec![];
-            let mut begin = q.left;
-            let mut end = q.right;
-            while begin < end {
-                let bin_end = std::cmp::min(begin + bin_size, end);
-                ret.push(Query::new(q.chr.clone(), begin, bin_end));
-                begin = bin_end;
+        // Split the given region into binsize chunks
+        let mut splitted = vec![];
+        let mut begin = query.left;
+        let end = query.right;
+        while begin < end {
+            let bin_end = std::cmp::min(begin + bin_size, end);
+            splitted.push(Query::new(query.chr.clone(), begin, bin_end));
+            begin = bin_end;
+        }
+
+        let values = if method == "mean" {
+            self.inner.mean(&splitted, track.as_deref())
+        } else if method == "median" {
+            match &self.inner {
+                _LocalD4Reader => self
+                    .inner
+                    .as_any()
+                    .downcast_ref::<LocalD4Reader>()
+                    .unwrap()
+                    .percentile(&splitted, track.as_deref(), 50.0),
+                _ => {
+                    panic!("Resampleing by median is only supported with local D4 Files")
+                }
             }
-            ret
+        } else {
+            // TODO - add better error message
+            unimplemented!()
         };
-        let splitted = self.for_each_region(&[query], split);
 
-        // Now compute the mean or median for each of the splitted after making tasks?
-        // https://github.com/38/d4-format/blob/714d6a7f0499dc833db39c01c7f1b4332dccee68/pyd4/src/d4file.rs#L194
+        // TODO: finish up the return type
+        eprintln!("{:?}", values);
     }
 }
-
-impl D4Source {
-    fn for_each_region<T, F: Fn(&Query) -> T>(&self, queries: &[Query], func: F) -> Vec<T> {
-        queries.iter().map(|q| func(q)).collect()
-    }
-}
+// TODO: broader "range" parsing more like python api where you can give just a chr and it will get the length for you
 
 /// Helper struct to hold onto the result of a query, and the context of the query.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -218,6 +229,12 @@ impl Query {
     }
 }
 
+impl<'a> From<&'a Query> for (&'a str, u32, u32) {
+    fn from(val: &'a Query) -> Self {
+        (val.chr.as_ref(), val.left, val.right)
+    }
+}
+
 /// Wrapper type for converting a [`Chrom`] into an R List.
 struct ChromWrapper(Chrom);
 impl From<ChromWrapper> for Robj {
@@ -288,6 +305,8 @@ mod test {
             assert_eq!(file.get_chroms().len(), 1);
             assert_eq!(file.get_chroms().elt(0)?.dollar("name")?, r!("chr1"));
             assert_eq!(file.get_chroms().elt(0)?.dollar("size")?, r!(1000_i32));
+            eprintln!("Mean {:?}", file.resample(String::from("chr1"), 0, 1000, None, String::from("mean"), Some(10), None));
+            eprintln!("Median {:?}", file.resample(String::from("chr1"), 0, 1000, None, String::from("median"), Some(10), None));
 
             let r = file.query(String::from("chr1"), 12, 22, None);
             assert_eq!(r.results(), &[0, 0, 0, 200, 0, 0, 0, 0, 100, 0]);

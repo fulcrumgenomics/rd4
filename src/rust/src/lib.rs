@@ -80,6 +80,111 @@ impl D4Source {
         self.inner.query(chr, left, right, track)
     }
 
+    /// Compute the mean depth of the given region.
+    ///
+    /// # Arguments
+    /// - `chr` - the chromosome to query
+    /// - `left` - the inclusive start position
+    /// - `right` - the exclusive end position
+    /// - `track` - the optional track to query, if NA, the first track in the source will be queried
+    /// @export
+    fn mean(&self, chr: String, left: u32, right: u32, track: Option<String>) -> f64 {
+        let query = Query::new(chr, left, right);
+        self.inner.mean(&[query], track.as_deref())[0]
+    }
+
+    /// Compute the median depth of the given region.
+    ///
+    /// **Note** this will fail on remote files and is only supported for local files.
+    ///
+    /// # Arguments
+    /// - `chr` - the chromosome to query
+    /// - `left` - the inclusive start position
+    /// - `right` - the exclusive end position
+    /// - `track` - the optional track to query, if NA, the first track in the source will be queried
+    /// @export
+    fn median(&self, chr: String, left: u32, right: u32, track: Option<String>) -> f64 {
+        let query = Query::new(chr, left, right);
+        if let Some(reader) = self.inner.as_any().downcast_ref::<LocalD4Reader>() {
+            reader.percentile(&[query], track.as_deref(), 50.0)[0]
+        } else {
+            panic!("Median operation is not supported on remote D4 sources.")
+        }
+    }
+
+    /// Returns the value histogram for the given region.
+    ///
+    /// **Note** this operation is only supported on local D4 sources.
+    ///
+    /// # Arguments
+    /// - `chr` - the chromosome to query
+    /// - `left` - the inclusive start position
+    /// - `right` - the exclusive end position
+    /// - `track` - the optional track to query, if NA, the first track in the source will be queried
+    /// - `min` - the smallest bucket of the histogram
+    /// - `max` - the largest bucket of the histogram, 1024 if None
+    /// @export
+    fn histogram(
+        &self,
+        chr: String,
+        left: u32,
+        right: u32,
+        track: Option<String>,
+        min: i32,
+        max: Option<i32>,
+    ) -> Histogram {
+        let query = Query::new(chr, left, right);
+        if let Some(reader) = self.inner.as_any().downcast_ref::<LocalD4Reader>() {
+            let (values, below, above) = reader
+                .histogram(&[query], min, max.unwrap_or(1024), track.as_deref())
+                .into_iter()
+                .next()
+                .unwrap();
+            Histogram::new(values, below, above)
+        } else {
+            panic!("Histogram operation is not supported on remote D4 sources.")
+        }
+    }
+
+    /// Returns the percentile value in the given region.
+    ///
+    /// **Note** this operation is only supported on local D4 sources.
+    ///
+    /// # Arguments
+    /// - `chr` - the chromosome to query
+    /// - `left` - the inclusive start position
+    /// - `right` - the exclusive end position
+    /// - `track` - the optional track to query, if NA, the first track in the source will be queried
+    /// - `percentile` - the percentile value
+    /// @export
+    fn percentile(
+        &self,
+        chr: String,
+        left: u32,
+        right: u32,
+        track: Option<String>,
+        percentile: f64,
+    ) -> f64 {
+        let query = Query::new(chr, left, right);
+        if let Some(reader) = self.inner.as_any().downcast_ref::<LocalD4Reader>() {
+            reader.percentile(&[query], track.as_deref(), percentile)[0]
+        } else {
+            panic!("Histogram operation is not supported on remote D4 sources.")
+        }
+    }
+
+    /// Re-sample the given region.
+    ///
+    /// # Arguments
+    /// - `chr` - the chromosome to query
+    /// - `left` - the inclusive start position
+    /// - `right` - the exclusive end position
+    /// - `track` - the optional track to query, if NA, the first track in the source will be queried
+    /// - `method` - the method to use for resampling, mean and median are supported. Only mean is supported for remote files
+    /// - `bin_size` - optional bin_size argument sets the width of bins to look at for re-sampling
+    /// - `allow_bin_size_adjustment` - only used for remote files, this will optimize the bin size for reading over a network
+    /// @export
+    #[allow(clippy::too_many_arguments)]
     fn resample(
         &self,
         chr: String,
@@ -89,13 +194,15 @@ impl D4Source {
         method: String,
         bin_size: Option<i32>,
         allow_bin_size_adjustment: Option<bool>,
-    ) {
-        let bin_size = bin_size.unwrap_or(1_000) as u32;
+    ) -> QueryResult {
+        let bin_size = self.inner.adjust_bin_size(
+            bin_size.unwrap_or(1_000) as u32,
+            allow_bin_size_adjustment.unwrap_or(true),
+        );
         let query = Query::new(chr, left, right);
-        // TODO - add adjust binsize method / logic
-        // let bin_size = self.inner.adjust_bin_size(bin_size, allow_bin_size_adjustment);
+        assert!(bin_size > 0, "Invalid bin_size argument. Must be greater than 0.");
 
-        // Split the given region into binsize chunks
+        // Split the given region into bin size chunks
         let mut splitted = vec![];
         let mut begin = query.left;
         let end = query.right;
@@ -108,24 +215,19 @@ impl D4Source {
         let values = if method == "mean" {
             self.inner.mean(&splitted, track.as_deref())
         } else if method == "median" {
-            match &self.inner {
-                _LocalD4Reader => self
-                    .inner
-                    .as_any()
-                    .downcast_ref::<LocalD4Reader>()
-                    .unwrap()
-                    .percentile(&splitted, track.as_deref(), 50.0),
-                _ => {
-                    panic!("Resampleing by median is only supported with local D4 Files")
-                }
+            if let Some(reader) = self.inner.as_any().downcast_ref::<LocalD4Reader>() {
+                reader.percentile(&splitted, track.as_deref(), 50.0)
+            } else {
+                panic!("Re-sampling by median is only supported with local D4 Files")
             }
         } else {
-            // TODO - add better error message
-            unimplemented!()
+            panic!(
+                "{}, is an unsupported resampling method. Please choose one of [mean, median]",
+                method
+            );
         };
 
-        // TODO: finish up the return type
-        eprintln!("{:?}", values);
+        QueryResult::new(query, self.get_source(), track, values, Some(bin_size as i32))
     }
 }
 // TODO: broader "range" parsing more like python api where you can give just a chr and it will get the length for you
@@ -134,19 +236,27 @@ impl D4Source {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryResult {
     /// The depths from the query
-    result: Vec<i32>,
+    result: Vec<f64>,
     /// The query used to generate this result
     query: Query,
     /// The d4 source being queried
     source: String,
     /// The track of the d4 source, if specified
     track: Option<String>,
+    /// The bin size used for this query (if resampled)
+    bin_size: Option<i32>,
 }
 
 impl QueryResult {
     /// Create a new [`QueryResult`]
-    fn new(query: Query, d4_file_path: String, d4_track: Option<String>, result: Vec<i32>) -> Self {
-        Self { result, query, source: d4_file_path, track: d4_track }
+    fn new(
+        query: Query,
+        d4_file_path: String,
+        d4_track: Option<String>,
+        result: Vec<f64>,
+        bin_size: Option<i32>,
+    ) -> Self {
+        Self { result, query, source: d4_file_path, track: d4_track, bin_size }
     }
 }
 
@@ -157,7 +267,7 @@ impl QueryResult {
     /// Get the results of the query
     ///
     /// @export
-    fn results(&self) -> &[i32] {
+    fn results(&self) -> &[f64] {
         &self.result
     }
 
@@ -182,6 +292,15 @@ impl QueryResult {
     /// @export
     fn track(&self) -> String {
         self.track.clone().unwrap_or_else(|| String::from(""))
+    }
+
+    /// Get the bin size used for this query.
+    ///
+    /// This is only useful if the query originated from `resample`, otherwise it will be NA.
+    ///
+    /// @export
+    fn bin_size(&self) -> Option<i32> {
+        self.bin_size
     }
 }
 
@@ -244,12 +363,138 @@ impl From<ChromWrapper> for Robj {
     }
 }
 
+/// Represents a Histogram
+#[derive(Debug, Clone)]
+struct Histogram {
+    below: u32,
+    above: u32,
+    first_value: i32,
+    prefix_sum: Vec<u32>,
+}
+
+impl Histogram {
+    fn new(mut values: Vec<(i32, u32)>, below: u32, above: u32) -> Self {
+        values.sort();
+        let first_value = values[0].0;
+        let mut prefix_sum = vec![below];
+        let mut current_value = first_value;
+        for (value, count) in values.into_iter() {
+            while current_value < value - 1 {
+                current_value += 1;
+                prefix_sum.push(*prefix_sum.last().unwrap());
+            }
+            current_value += 1;
+            prefix_sum.push(prefix_sum.last().unwrap() + count)
+        }
+
+        Self { below, above, first_value, prefix_sum }
+    }
+}
+
+/// TODO
+/// @export
+#[extendr]
+impl Histogram {
+    /// Count the number of a value.
+    /// @export
+    fn value_count(&self, value: i32) -> i32 {
+        // TODO: should the "value" be multiplied by the denominator?
+        if value < self.first_value || self.first_value + (self.prefix_sum.len() as i32) - 1 < value
+        {
+            0
+        } else {
+            let idx = (value - self.first_value + 1) as usize;
+            (self.prefix_sum[idx] - self.prefix_sum[idx - 1]) as i32
+        }
+    }
+
+    /// Total number of data points
+    /// @export
+    fn total_count(&self) -> i32 {
+        (self.prefix_sum.last().unwrap() + self.above) as i32
+    }
+
+    /// Percentage of the value
+    /// @export
+    fn value_percentage(&self, value: i32) -> f64 {
+        // TODO: same question about value and denominator
+        self.value_count(value) as f64 / self.total_count() as f64
+    }
+
+    /// Count below the number of value
+    /// @export
+    fn percentile_below(&self, value: i32) -> f64 {
+        if value < self.first_value || self.first_value + self.prefix_sum.len() as i32 - 1 < value {
+            0.0
+        } else {
+            let idx = (value - self.first_value + 1) as usize;
+            self.prefix_sum[idx] as f64 / self.total_count() as f64
+        }
+    }
+
+    /// Get the mean depth from this histogram
+    /// @export
+    fn mean(&self) -> f64 {
+        let mut current_value = self.first_value as u32;
+        let mut current_sum = self.prefix_sum[0];
+        let mut total = 0;
+        for value in self.prefix_sum.iter().skip(1) {
+            let current_count = value - current_sum;
+            total += current_count + current_value;
+            current_value += 1;
+            current_sum = *value;
+        }
+        total as f64 / self.total_count() as f64
+    }
+
+    /// Get the n-th percentile value from the histogram
+    /// @export
+    fn percentile(&self, percentile: f64) -> i32 {
+        let total_count = self.total_count() as f64;
+        let mut value = self.first_value;
+        for count in self.prefix_sum.iter().skip(1) {
+            if *count as f64 * 100.0 / total_count > percentile {
+                return value;
+            }
+            value += 1;
+        }
+        0
+    }
+
+    /// Compute the median value of the histogram
+    /// @export
+    fn median(&self) -> i32 {
+        self.percentile(50.0)
+    }
+
+    /// Compute the standard deviation of this histogram.
+    /// @export
+    fn std(&self) -> f64 {
+        let mut current_value = self.first_value as u32;
+        let mut current_sum = self.prefix_sum[0];
+        let mut sum = 0;
+        let mut square_sum = 0;
+        for value in self.prefix_sum.iter().skip(1) {
+            let current_count = value - current_sum;
+            sum += current_count * current_value;
+            square_sum += current_count * current_value * current_value;
+            current_value += 1;
+            current_sum = *value
+        }
+
+        let ex = sum as f64 / self.total_count() as f64;
+        let esx = square_sum as f64 / self.total_count() as f64;
+        (esx - ex * ex).sqrt()
+    }
+}
+
 // Macro to generate exports.
 // This ensures exported functions are registered with R.
 // See corresponding C code in `entrypoint.c`.
 extendr_module! {
     mod rd4;
     impl D4Source;
+    impl Histogram;
     impl Query;
     impl QueryResult;
 }
@@ -309,7 +554,7 @@ mod test {
             eprintln!("Median {:?}", file.resample(String::from("chr1"), 0, 1000, None, String::from("median"), Some(10), None));
 
             let r = file.query(String::from("chr1"), 12, 22, None);
-            assert_eq!(r.results(), &[0, 0, 0, 200, 0, 0, 0, 0, 100, 0]);
+            assert_eq!(r.results(), &[0., 0., 0., 200., 0., 0., 0., 0., 100., 0.]);
             assert_eq!(r.source(), data.to_string_lossy());
             assert_eq!(r.track(), String::from(""));
 

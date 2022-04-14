@@ -35,7 +35,8 @@ impl D4Reader for HttpD4Reader {
 
     fn query_track(&self, query: &Query, track: Option<&str>) -> QueryResult {
         let mut reader = self.open(track);
-        let result = reader
+        let denominator = self.get_demoninator();
+        let result: Vec<f64> = reader
             .get_view(&query.chr, query.left, query.right)
             .unwrap_or_else(|_| {
                 panic!(
@@ -43,9 +44,20 @@ impl D4Reader for HttpD4Reader {
                     self.source, &query.chr, query.left, query.right
                 )
             })
-            .map(|res| if let Ok((_, value)) = res { value } else { 0 })
+            .map(|res| if let Ok((_, value)) = res { value as f64 } else { 0.0 })
             .collect();
-        QueryResult::new(query.clone(), self.source.clone(), track.map(|x| x.to_owned()), result)
+        let result = if denominator == 1.0 {
+            result
+        } else {
+            result.into_iter().map(|v| v / denominator).collect()
+        };
+        QueryResult::new(
+            query.clone(),
+            self.source.clone(),
+            track.map(|x| x.to_owned()),
+            result,
+            None,
+        )
     }
 
     fn as_any(&self) -> &dyn Any {
@@ -54,6 +66,24 @@ impl D4Reader for HttpD4Reader {
 
     fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64> {
         todo!()
+    }
+
+    fn get_demoninator(&self) -> f64 {
+        self.open(None).get_header().get_denominator()
+    }
+
+    /// Try to adjust the bin size if allowed.
+    fn adjust_bin_size(&self, bin_size: u32, allow_bin_size_adjustment: bool) -> u32 {
+        if allow_bin_size_adjustment {
+            // TODO: magic number?
+            if bin_size < 65536 {
+                65536
+            } else {
+                bin_size - bin_size % 65536
+            }
+        } else {
+            bin_size
+        }
     }
 }
 

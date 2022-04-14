@@ -5,6 +5,7 @@ use d4::stab::SecondaryTablePartReader;
 use d4::task::{Histogram, Task, TaskContext};
 use d4::Chrom;
 use d4::{ptab::DecodeResult, task::Mean};
+use ordered_float::OrderedFloat;
 
 use crate::{d4_reader::D4Reader, Query, QueryResult};
 
@@ -41,7 +42,8 @@ impl D4Reader for LocalD4Reader {
         let partition =
             reader.split(None).unwrap_or_else(|_| panic!("Failed to partition {:?}", self.path));
         let chr = query.chr.clone();
-        let result: Vec<i32> = partition
+        let denominator = self.get_demoninator();
+        let result: Vec<f64> = partition
             .into_iter()
             .flat_map(move |(mut ptab, mut stab)| {
                 let (part_chr, begin, end) = ptab.region();
@@ -49,25 +51,39 @@ impl D4Reader for LocalD4Reader {
                 let pd = ptab.to_codec();
                 (if part_chr == chr { query.left.max(begin)..query.right.min(end) } else { 0..0 })
                     .map(move |pos| match pd.decode(pos as usize) {
-                        DecodeResult::Definitely(value) => value,
+                        DecodeResult::Definitely(value) => value as f64,
                         DecodeResult::Maybe(value) => {
                             if let Some(st_value) = stab.decode(pos) {
-                                st_value
+                                st_value as f64
                             } else {
-                                value
+                                value as f64
                             }
                         }
                     })
             })
             .collect();
-        QueryResult::new(query.clone(), self.path.clone(), track.map(|x| x.to_owned()), result)
+
+        let result = if denominator == 1.0 {
+            result.into_iter().map(|v| v as f64).collect()
+        } else {
+            result.into_iter().map(|v| v as f64 / denominator).collect()
+        };
+
+        QueryResult::new(
+            query.clone(),
+            self.path.clone(),
+            track.map(|x| x.to_owned()),
+            result,
+            None,
+        )
     }
 
+    /// Compute the mean depth for each region in `regions` for the specified `track`.
     fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64> {
         let mut reader = self.open(track);
         let result = Mean::create_task(
             &mut reader,
-            &regions.into_iter().map(|r| r.into()).collect::<Vec<(&str, u32, u32)>>(),
+            &regions.iter().map(|r| r.into()).collect::<Vec<(&str, u32, u32)>>(),
         )
         .expect("Failed to run mean tasks")
         .run();
@@ -80,6 +96,15 @@ impl D4Reader for LocalD4Reader {
 
     fn as_any(&self) -> &dyn Any {
         self
+    }
+
+    fn get_demoninator(&self) -> f64 {
+        self.open(None).header().get_denominator()
+    }
+
+    /// For local files no adjustment is needed.
+    fn adjust_bin_size(&self, bin_size: u32, allow_bin_size_adjustment: bool) -> u32 {
+        bin_size
     }
 }
 
@@ -94,6 +119,7 @@ impl LocalD4Reader {
             .unwrap_or_else(|_| panic!("Failed to create local reader for: {:?}", self.path))
     }
 
+    /// Compute the percentile value for each input region
     pub fn percentile(&self, regions: &[Query], track: Option<&str>, percentile: f64) -> Vec<f64> {
         let results = self.histogram(regions, 0, 1000, track);
         let mut output = vec![];
@@ -110,12 +136,26 @@ impl LocalD4Reader {
             if (percentile < below * 100.0 / total) || (100.0 - above * 100.0 / total < percentile)
             {
                 let data = self.query_track(query, track);
-                let mut low = data.results().iter().copied().min().unwrap_or(0);
-                let mut high = data.results().iter().copied().max().unwrap_or(0) + 1;
-                while high - low > 1 {
-                    let mid = (high + low) % 2;
-                    let p: f64 = data.results().iter().filter(|depth| **depth < mid).sum::<i32>()
-                        as f64
+                let mut low = data
+                    .results()
+                    .iter()
+                    .copied()
+                    .map(OrderedFloat)
+                    .min()
+                    .unwrap_or(OrderedFloat(0.0))
+                    .into_inner();
+                let mut high = data
+                    .results()
+                    .iter()
+                    .copied()
+                    .map(OrderedFloat)
+                    .max()
+                    .unwrap_or(OrderedFloat(0.0))
+                    .into_inner()
+                    + 1.0;
+                while high - low > 1.0 {
+                    let mid = (high + low) % 2.0;
+                    let p = data.results().iter().filter(|depth| **depth < mid).sum::<f64>()
                         * 100.0
                         / total;
                     if p < percentile {
@@ -124,7 +164,7 @@ impl LocalD4Reader {
                         high = mid;
                     }
                 }
-                output.push(low as f64);
+                output.push(low);
             } else {
                 let mut acc = below;
                 for (value, count) in hist {
@@ -171,6 +211,7 @@ impl LocalD4Reader {
             let hist: Vec<_> = hist.iter().enumerate().map(|(a, &b)| (a as i32, b)).collect();
             output.push((hist, *below, *above));
         }
+        // Vec<(Vec<(value, count)>, below, above)>
         output
     }
 }

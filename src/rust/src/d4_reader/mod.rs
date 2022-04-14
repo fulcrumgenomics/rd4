@@ -29,8 +29,14 @@ pub(crate) trait D4Reader: Debug {
     /// Extract the available tracks in this D4Reader.
     fn get_tracks(&self) -> Vec<String>;
 
+    /// Get the denominator from the header.
+    fn get_demoninator(&self) -> f64;
+
     /// Return the source location for this [`D4Reader`]
     fn source(&self) -> String;
+
+    /// Adjust the bin size selection.
+    fn adjust_bin_size(&self, bin_size: u32, allow_bin_size_adjustment: bool) -> u32;
 
     /// Query the source for the depths over the specified region
     ///
@@ -54,5 +60,6 @@ pub(crate) trait D4Reader: Debug {
 
     fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64>;
 
+    /// Cast the object implementing this trait to [`Any`] to allow for downcasting.
     fn as_any(&self) -> &dyn Any;
 }

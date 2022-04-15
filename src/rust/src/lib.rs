@@ -364,6 +364,7 @@ impl From<ChromWrapper> for Robj {
 }
 
 /// Represents a Histogram
+// TODO: change up the inner storage so that the D4Reader can return this
 #[derive(Debug, Clone)]
 struct Histogram {
     below: u32,
@@ -374,8 +375,8 @@ struct Histogram {
 
 impl Histogram {
     fn new(mut values: Vec<(i32, u32)>, below: u32, above: u32) -> Self {
-        values.sort();
-        let first_value = values[0].0;
+        values.sort_unstable(); // TODO: I don't think this sort is needed, the "values" is the (value, count), and should be in value order I think?
+        let first_value = values[0].0; // TODO: is there ever a time when this wouldn't be zero?
         let mut prefix_sum = vec![below];
         let mut current_value = first_value;
         for (value, count) in values.into_iter() {
@@ -398,7 +399,7 @@ impl Histogram {
     /// Count the number of a value.
     /// @export
     fn value_count(&self, value: i32) -> i32 {
-        // TODO: should the "value" be multiplied by the denominator?
+        // TODO: should the "value" be multiplied by the denominator, and be f64?
         if value < self.first_value || self.first_value + (self.prefix_sum.len() as i32) - 1 < value
         {
             0
@@ -428,7 +429,7 @@ impl Histogram {
             0.0
         } else {
             let idx = (value - self.first_value + 1) as usize;
-            self.prefix_sum[idx] as f64 / self.total_count() as f64
+            (self.prefix_sum[idx] as f64 / self.total_count() as f64) * 100.0
         }
     }
 
@@ -440,10 +441,12 @@ impl Histogram {
         let mut total = 0;
         for value in self.prefix_sum.iter().skip(1) {
             let current_count = value - current_sum;
-            total += current_count + current_value;
+            total += current_count * current_value;
             current_value += 1;
             current_sum = *value;
         }
+        eprintln!("Total: {:?}", total);
+        eprintln!("Total Count: {:?}", self.total_count());
         total as f64 / self.total_count() as f64
     }
 
@@ -453,6 +456,7 @@ impl Histogram {
         let total_count = self.total_count() as f64;
         let mut value = self.first_value;
         for count in self.prefix_sum.iter().skip(1) {
+            eprintln!("{:?}, {:?}", *count as f64 * 100.0 / total_count as f64, value);
             if *count as f64 * 100.0 / total_count > percentile {
                 return value;
             }
@@ -550,8 +554,6 @@ mod test {
             assert_eq!(file.get_chroms().len(), 1);
             assert_eq!(file.get_chroms().elt(0)?.dollar("name")?, r!("chr1"));
             assert_eq!(file.get_chroms().elt(0)?.dollar("size")?, r!(1000_i32));
-            eprintln!("Mean {:?}", file.resample(String::from("chr1"), 0, 1000, None, String::from("mean"), Some(10), None));
-            eprintln!("Median {:?}", file.resample(String::from("chr1"), 0, 1000, None, String::from("median"), Some(10), None));
 
             let r = file.query(String::from("chr1"), 12, 22, None);
             assert_eq!(r.results(), &[0., 0., 0., 200., 0., 0., 0., 0., 100., 0.]);
@@ -560,6 +562,30 @@ mod test {
 
             let q = r.query();
             assert_eq!(q, Query::new(String::from("chr1"), 12, 22));
+        }
+    }
+
+    #[test]
+    fn test_histogram() {
+        test! {
+            let tempdir = TempDir::new().unwrap();
+            let data = create_d4_file(tempdir.path());
+
+            let file = D4Source::new(data.to_str().unwrap());
+            let hist = file.histogram(String::from("chr1"), 0, 1000, None, 99, Some(200));
+            assert_eq!(hist.below, 996);
+            assert_eq!(hist.above, 2);
+            assert_eq!(hist.mean(), 0.2);
+            assert_eq!(hist.median(), 99); // median is the lowest value in the range we specified since so many points were below that
+            // TODO: make these internally consistent
+            assert_eq!(hist.percentile(99.79), 100); // The two counts at depth 100 push the total observed seen points to 998
+            assert_eq!(hist.percentile_below(199), 99.8);
+            assert_eq!(hist.value_count(100), 2);
+            assert_eq!(hist.value_percentage(100), 0.002);
+            assert_eq!(hist.std(), 4.4676615807377355);
+            eprintln!("Histogram {:?}", file.histogram(String::from("chr1"), 0, 1000, None, 100, Some(200)));
+            // eprintln!("Mean {:?}", file.resample(String::from("chr1"), 0, 1000, None, String::from("mean"), Some(10), None));
+            // eprintln!("Median {:?}", file.resample(String::from("chr1"), 0, 1000, None, String::from("median"), Some(10), None));
         }
     }
 }

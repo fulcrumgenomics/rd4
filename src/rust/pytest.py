@@ -9,7 +9,10 @@ def main():
     chroms = dict(file.chroms())
 
     # print(file[("chr1", 0, 1000)])
-    print(file.resample("chr1:0-1000", method="mean", bin_size=10))
+    # print(file.resample("chr1:0-1000", method="mean", bin_size=10))
+    hist = file.histogram("chr1:0-1000", min=99, max=200)
+    print(hist.std())
+
 
 
 

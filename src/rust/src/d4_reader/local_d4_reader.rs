@@ -185,8 +185,8 @@ impl LocalD4Reader {
     /// Returns the histogram of values in the given regions
     ///
     /// regions: The list of regions we are asking
-    /// min: The smallest bucket of the histogram
-    /// max: The biggest bucket of the histogram
+    /// min: The first bucket of the histogram
+    /// max: The exclusive last bucket of this histogram (i.e. a max of 100 will mean the histogram goes up to 99)
     ///
     /// The return value is a list of histograms (including the count of below min and above max
     /// items)
@@ -197,18 +197,21 @@ impl LocalD4Reader {
         max: i32,
         track: Option<&str>,
     ) -> Vec<(Vec<(i32, u32)>, u32, u32)> {
+        // TODO: have this return a Histogram object
         let mut reader = self.open(track);
         let spec = regions
-            .into_iter()
+            .iter()
             .map(|r| r.into())
-            .map(|(chr, start, stop)| Histogram::with_bin_range(&chr, start, stop, min..max))
+            .map(|(chr, start, stop)| Histogram::with_bin_range(chr, start, stop, min..max))
             .collect();
         let result =
             TaskContext::new(&mut reader, spec).expect("Failed to compute histogram").run();
         let mut output = vec![];
         for item in &result {
+            eprintln!("Result Item: {:?}, {:?}, {:?}", item.output.0, item.output.1, item.output.2);
+            // The result item is the (number of values less than min, an array with count for each value from min..max, then the number of values >= max)
             let (below, hist, above) = item.output;
-            let hist: Vec<_> = hist.iter().enumerate().map(|(a, &b)| (a as i32, b)).collect();
+            let hist: Vec<_> = hist.iter().enumerate().map(|(a, &b)| (a as i32 + min, b)).collect(); // TODO: I _think_ that min needs to be added to `a` here (this might be a bug in pyd4)
             output.push((hist, *below, *above));
         }
         // Vec<(Vec<(value, count)>, below, above)>

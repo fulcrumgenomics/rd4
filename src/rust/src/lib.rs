@@ -2,8 +2,10 @@
 //!
 //! See R documentation for how to use this.
 
+// TODO: broader "range" parsing more like python api where you can give just a chr and it will get the length for you
+
 mod d4_reader;
-use d4::{task::IntoTaskVec, Chrom};
+use d4::Chrom;
 use d4_reader::{http_d4_reader::HttpD4Reader, local_d4_reader::LocalD4Reader, D4Reader};
 use extendr_api::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -135,12 +137,11 @@ impl D4Source {
     ) -> Histogram {
         let query = Query::new(chr, left, right);
         if let Some(reader) = self.inner.as_any().downcast_ref::<LocalD4Reader>() {
-            let (values, below, above) = reader
+            reader
                 .histogram(&[query], min, max.unwrap_or(1024), track.as_deref())
                 .into_iter()
                 .next()
-                .unwrap();
-            Histogram::new(values, below, above)
+                .unwrap()
         } else {
             panic!("Histogram operation is not supported on remote D4 sources.")
         }
@@ -230,7 +231,6 @@ impl D4Source {
         QueryResult::new(query, self.get_source(), track, values, Some(bin_size as i32))
     }
 }
-// TODO: broader "range" parsing more like python api where you can give just a chr and it will get the length for you
 
 /// Helper struct to hold onto the result of a query, and the context of the query.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -363,8 +363,9 @@ impl From<ChromWrapper> for Robj {
     }
 }
 
-/// Represents a Histogram
-// TODO: change up the inner storage so that the D4Reader can return this
+/// Represents a Histogram of counts of the values between the `min` and `max` used when creating the histogram
+///
+///
 #[derive(Debug, Clone)]
 struct Histogram {
     below: u32,
@@ -374,9 +375,10 @@ struct Histogram {
 }
 
 impl Histogram {
+    /// Create a new histogram object with a vec of values and counts.
     fn new(mut values: Vec<(i32, u32)>, below: u32, above: u32) -> Self {
         values.sort_unstable(); // TODO: I don't think this sort is needed, the "values" is the (value, count), and should be in value order I think?
-        let first_value = values[0].0; // TODO: is there ever a time when this wouldn't be zero?
+        let first_value = values[0].0;
         let mut prefix_sum = vec![below];
         let mut current_value = first_value;
         for (value, count) in values.into_iter() {
@@ -392,11 +394,14 @@ impl Histogram {
     }
 }
 
-/// TODO
+/// The [`Histogram`] API.
 /// @export
 #[extendr]
 impl Histogram {
-    /// Count the number of a value.
+    /// Get the counts of a value in the histogram.
+    ///
+    /// If the value is outside the bounds specified when creating the histogram, `0` will be returned.
+    ///
     /// @export
     fn value_count(&self, value: i32) -> i32 {
         // TODO: should the "value" be multiplied by the denominator, and be f64?
@@ -409,31 +414,34 @@ impl Histogram {
         }
     }
 
-    /// Total number of data points
+    /// Total number of data points, including points above and below the specified histogram range.
+    ///
     /// @export
     fn total_count(&self) -> i32 {
         (self.prefix_sum.last().unwrap() + self.above) as i32
     }
 
-    /// Percentage of the value
+    /// The fraction represented by the the number of counts of the specified value out of the total counts (including those above and below the specified histogram range).
+    ///
     /// @export
-    fn value_percentage(&self, value: i32) -> f64 {
+    fn value_fraction(&self, value: i32) -> f64 {
         // TODO: same question about value and denominator
         self.value_count(value) as f64 / self.total_count() as f64
     }
 
-    /// Count below the number of value
+    /// The fraction of values below the specified value (includes counts below the min of the specified range) out of the total counts (including those above and below the specified range).
     /// @export
-    fn percentile_below(&self, value: i32) -> f64 {
+    fn fraction_below(&self, value: i32) -> f64 {
         if value < self.first_value || self.first_value + self.prefix_sum.len() as i32 - 1 < value {
             0.0
         } else {
             let idx = (value - self.first_value + 1) as usize;
-            (self.prefix_sum[idx] as f64 / self.total_count() as f64) * 100.0
+            self.prefix_sum[idx] as f64 / self.total_count() as f64
         }
     }
 
-    /// Get the mean depth from this histogram
+    /// Get the mean from this histogram.
+    ///
     /// @export
     fn mean(&self) -> f64 {
         let mut current_value = self.first_value as u32;
@@ -445,18 +453,16 @@ impl Histogram {
             current_value += 1;
             current_sum = *value;
         }
-        eprintln!("Total: {:?}", total);
-        eprintln!("Total Count: {:?}", self.total_count());
         total as f64 / self.total_count() as f64
     }
 
-    /// Get the n-th percentile value from the histogram
+    /// Get the n-th percentile value from the histogram.
+    ///
     /// @export
     fn percentile(&self, percentile: f64) -> i32 {
         let total_count = self.total_count() as f64;
         let mut value = self.first_value;
         for count in self.prefix_sum.iter().skip(1) {
-            eprintln!("{:?}, {:?}", *count as f64 * 100.0 / total_count as f64, value);
             if *count as f64 * 100.0 / total_count > percentile {
                 return value;
             }
@@ -465,13 +471,15 @@ impl Histogram {
         0
     }
 
-    /// Compute the median value of the histogram
+    /// Compute the median value of the histogram (i.e. the median depth).
+    ///
     /// @export
     fn median(&self) -> i32 {
         self.percentile(50.0)
     }
 
     /// Compute the standard deviation of this histogram.
+    ///
     /// @export
     fn std(&self) -> f64 {
         let mut current_value = self.first_value as u32;
@@ -566,7 +574,7 @@ mod test {
     }
 
     #[test]
-    fn test_histogram() {
+    fn test_histogram_partial_range() {
         test! {
             let tempdir = TempDir::new().unwrap();
             let data = create_d4_file(tempdir.path());
@@ -577,15 +585,31 @@ mod test {
             assert_eq!(hist.above, 2);
             assert_eq!(hist.mean(), 0.2);
             assert_eq!(hist.median(), 99); // median is the lowest value in the range we specified since so many points were below that
-            // TODO: make these internally consistent
             assert_eq!(hist.percentile(99.79), 100); // The two counts at depth 100 push the total observed seen points to 998
-            assert_eq!(hist.percentile_below(199), 99.8);
+            assert_eq!(hist.fraction_below(199), 0.998);
             assert_eq!(hist.value_count(100), 2);
-            assert_eq!(hist.value_percentage(100), 0.002);
-            assert_eq!(hist.std(), 4.4676615807377355);
-            eprintln!("Histogram {:?}", file.histogram(String::from("chr1"), 0, 1000, None, 100, Some(200)));
-            // eprintln!("Mean {:?}", file.resample(String::from("chr1"), 0, 1000, None, String::from("mean"), Some(10), None));
-            // eprintln!("Median {:?}", file.resample(String::from("chr1"), 0, 1000, None, String::from("median"), Some(10), None));
+            assert_eq!(hist.value_fraction(100), 0.002);
+            assert_eq!(hist.std(), 4.467_661_580_737_736);
+        }
+    }
+
+    #[test]
+    fn test_histogram_full_range() {
+        test! {
+            let tempdir = TempDir::new().unwrap();
+            let data = create_d4_file(tempdir.path());
+
+            let file = D4Source::new(data.to_str().unwrap());
+            let hist = file.histogram(String::from("chr1"), 0, 1000, None, 0, None);
+            assert_eq!(hist.below, 0);
+            assert_eq!(hist.above, 0);
+            assert_eq!(hist.mean(), 1.4);
+            assert_eq!(hist.median(), 0); // median is the lowest value in the range we specified since so many points were below that
+            assert_eq!(hist.percentile(99.79), 100); // The two counts at depth 100 push the total observed seen points to 998
+            assert_eq!(hist.fraction_below(199), 0.998);
+            assert_eq!(hist.value_count(100), 2);
+            assert_eq!(hist.value_fraction(100), 0.002);
+            assert_eq!(hist.std(), 32.527_526_804_231_52);
         }
     }
 }

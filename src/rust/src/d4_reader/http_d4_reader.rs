@@ -6,6 +6,8 @@ use d4::Chrom;
 
 use crate::{d4_reader::D4Reader, Query, QueryResult};
 
+use super::HIGH_DEPTH;
+
 /// Access D4 sources over HTTP
 #[derive(Clone, Debug)]
 pub(crate) struct HttpD4Reader {
@@ -65,7 +67,19 @@ impl D4Reader for HttpD4Reader {
     }
 
     fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64> {
-        todo!()
+        let mut reader = self.open(track);
+        let mut output = Vec::with_capacity(regions.len());
+        let index =
+            reader.load_data_index::<d4::index::Sum>().expect("Failed to load remote index");
+        for (chr, begin, end) in regions.iter().map(|r| r.into()) {
+            let index_res = index.query(chr, begin, end).expect("Failed to run remote query");
+            let sum_res = index_res
+                .get_result(&mut reader)
+                .expect("Failed to extract query result from remote query.");
+            let mean = sum_res.mean(index_res.query_size());
+            output.push(mean);
+        }
+        output
     }
 
     fn get_demoninator(&self) -> f64 {
@@ -75,11 +89,10 @@ impl D4Reader for HttpD4Reader {
     /// Try to adjust the bin size if allowed.
     fn adjust_bin_size(&self, bin_size: u32, allow_bin_size_adjustment: bool) -> u32 {
         if allow_bin_size_adjustment {
-            // TODO: magic number?
-            if bin_size < 65536 {
-                65536
+            if bin_size < HIGH_DEPTH {
+                HIGH_DEPTH
             } else {
-                bin_size - bin_size % 65536
+                bin_size - bin_size % (HIGH_DEPTH)
             }
         } else {
             bin_size

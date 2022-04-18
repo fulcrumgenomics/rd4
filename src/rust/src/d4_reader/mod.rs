@@ -7,6 +7,9 @@ use crate::{Query, QueryResult};
 pub(crate) mod http_d4_reader;
 pub(crate) mod local_d4_reader;
 
+/// 2^16, a constant to use as a marker for high depth.
+const HIGH_DEPTH: u32 = 65536;
+
 // `open` can't be defined on this trait since the uderlying D4 reader types
 // for HTTP vs Local don't implement a common trait and are two separate types.
 // If an associated type were added to this trait to handle this, then the `D4Source`

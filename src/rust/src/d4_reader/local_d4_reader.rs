@@ -2,12 +2,15 @@
 use std::any::Any;
 
 use d4::stab::SecondaryTablePartReader;
-use d4::task::{Histogram, Task, TaskContext};
+use d4::task::{Task, TaskContext};
 use d4::Chrom;
 use d4::{ptab::DecodeResult, task::Mean};
 use ordered_float::OrderedFloat;
 
+use crate::Histogram;
 use crate::{d4_reader::D4Reader, Query, QueryResult};
+
+use super::HIGH_DEPTH;
 
 #[derive(Clone, Debug)]
 pub(crate) struct LocalD4Reader {
@@ -103,7 +106,7 @@ impl D4Reader for LocalD4Reader {
     }
 
     /// For local files no adjustment is needed.
-    fn adjust_bin_size(&self, bin_size: u32, allow_bin_size_adjustment: bool) -> u32 {
+    fn adjust_bin_size(&self, bin_size: u32, _allow_bin_size_adjustment: bool) -> u32 {
         bin_size
     }
 }
@@ -121,17 +124,13 @@ impl LocalD4Reader {
 
     /// Compute the percentile value for each input region
     pub fn percentile(&self, regions: &[Query], track: Option<&str>, percentile: f64) -> Vec<f64> {
-        let results = self.histogram(regions, 0, 1000, track);
         let mut output = vec![];
-        for (result, query) in results.iter().zip(regions.iter()) {
-            // Inner loop is _percentile_impl in the python code
-            // TODO, what is this doing?
-            // TODO extract out consts
-            // TODO: take ref to query? cloneing the string is enefficient
-            let (hist, below, above) = &self.histogram(&[query.clone()], 0, 65536, track)[0];
-            let above = *above as f64;
-            let below = *below as f64;
-            let (chr, begin, end) = query.into();
+        // Inner loop is _percentile_impl in the python code
+        for query in regions {
+            let hist = &self.histogram(&[query.clone()], 0, HIGH_DEPTH as i32, track)[0];
+            let above = hist.above as f64;
+            let below = hist.below as f64;
+            let (_chr, begin, end) = query.into();
             let total = (end - begin) as f64;
             if (percentile < below * 100.0 / total) || (100.0 - above * 100.0 / total < percentile)
             {
@@ -166,13 +165,13 @@ impl LocalD4Reader {
                 }
                 output.push(low);
             } else {
-                let mut acc = below;
-                for (value, count) in hist {
-                    if (acc + *count as f64) * 100.0 / total > percentile {
-                        output.push(*value as f64);
+                let mut value = hist.first_value;
+                for prefix_sum in &hist.prefix_sum {
+                    if (*prefix_sum as f64 / total as f64) * 100.0 > percentile {
+                        output.push(value as f64);
                         break;
                     }
-                    acc += *count as f64;
+                    value += 1;
                 }
             }
         }
@@ -180,41 +179,38 @@ impl LocalD4Reader {
     }
 
     /// histogram(regions, min, max)
-    /// --
     ///
     /// Returns the histogram of values in the given regions
     ///
-    /// regions: The list of regions we are asking
-    /// min: The first bucket of the histogram
-    /// max: The exclusive last bucket of this histogram (i.e. a max of 100 will mean the histogram goes up to 99)
-    ///
-    /// The return value is a list of histograms (including the count of below min and above max
-    /// items)
+    /// # Arguments
+    /// - `regions` - The list of regions we are asking
+    /// - `min` - The first bucket of the histogram
+    /// - `max` - The exclusive last bucket of this histogram (i.e. a max of 100 will mean the histogram goes up to 99)
     pub fn histogram(
         &self,
         regions: &[Query],
         min: i32,
         max: i32,
         track: Option<&str>,
-    ) -> Vec<(Vec<(i32, u32)>, u32, u32)> {
-        // TODO: have this return a Histogram object
+    ) -> Vec<Histogram> {
         let mut reader = self.open(track);
         let spec = regions
             .iter()
             .map(|r| r.into())
-            .map(|(chr, start, stop)| Histogram::with_bin_range(chr, start, stop, min..max))
+            .map(|(chr, start, stop)| {
+                d4::task::Histogram::with_bin_range(chr, start, stop, min..max)
+            })
             .collect();
         let result =
             TaskContext::new(&mut reader, spec).expect("Failed to compute histogram").run();
         let mut output = vec![];
         for item in &result {
-            eprintln!("Result Item: {:?}, {:?}, {:?}", item.output.0, item.output.1, item.output.2);
             // The result item is the (number of values less than min, an array with count for each value from min..max, then the number of values >= max)
             let (below, hist, above) = item.output;
-            let hist: Vec<_> = hist.iter().enumerate().map(|(a, &b)| (a as i32 + min, b)).collect(); // TODO: I _think_ that min needs to be added to `a` here (this might be a bug in pyd4)
-            output.push((hist, *below, *above));
+            let hist: Vec<_> = hist.iter().enumerate().map(|(a, &b)| (a as i32 + min, b)).collect(); // TODO - This differs from the pyd4 api, which does not add `a + min` and just lets the "value" be 0
+            let hist = Histogram::new(hist, *below, *above);
+            output.push(hist);
         }
-        // Vec<(Vec<(value, count)>, below, above)>
         output
     }
 }

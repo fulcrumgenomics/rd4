@@ -132,7 +132,8 @@ impl LocalD4Reader {
             let below = hist.below as f64;
             let (_chr, begin, end) = query.into();
             let total = (end - begin) as f64;
-            if (percentile < below * 100.0 / total) || (100.0 - above * 100.0 / total < percentile)
+            if (percentile < (below / total) * 100.0)
+                || (100.0 - ((above / total) * 100.0) < percentile)
             {
                 let data = self.query_track(query, track);
                 let mut low = data
@@ -166,7 +167,7 @@ impl LocalD4Reader {
                 output.push(low);
             } else {
                 let mut value = hist.first_value;
-                for prefix_sum in &hist.prefix_sum {
+                for prefix_sum in hist.prefix_sum.iter().skip(1) {
                     if (*prefix_sum as f64 / total as f64) * 100.0 > percentile {
                         output.push(value as f64);
                         break;

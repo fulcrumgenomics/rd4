@@ -10,8 +10,9 @@ def main():
 
     # print(file[("chr1", 0, 1000)])
     # print(file.resample("chr1:0-1000", method="mean", bin_size=10))
-    hist = file.histogram("chr1:0-1000", min=0)
+    hist = file.histogram("chr1:0-1000", min=99, max=200)
 
+    print(f"median depth of region: {file.median(('chr1', 12, 22))}")
     print(f"below {hist.below}")
     print(f"above: {hist.above}")
     print(f"mean: {hist.mean()}")

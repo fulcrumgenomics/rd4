@@ -6,7 +6,7 @@
 \alias{$.D4Source}
 \title{D4Source class}
 \format{
-An object of class \code{environment} of length 6.
+An object of class \code{environment} of length 11.
 }
 \usage{
 D4Source

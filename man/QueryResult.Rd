@@ -6,7 +6,7 @@
 \alias{$.QueryResult}
 \title{The object returned after querying a \code{\link{D4Source}}}
 \format{
-An object of class \code{environment} of length 4.
+An object of class \code{environment} of length 5.
 }
 \usage{
 QueryResult

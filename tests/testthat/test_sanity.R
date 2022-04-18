@@ -17,3 +17,30 @@ test_that("A D4 File can be opened and queried", {
     expect_equal(result$track(), "")
     expect_equal(result$results(), c(0, 0, 0, 200, 0, 0, 0, 0, 100, 0))
 })
+
+test_that("A Histogram over a full range works", {
+    test_file <- testthat::test_path("testdata", "test.d4")
+    file <- D4Source$new(test_file)
+    hist <- file$histogram("chr1", 0, 1000, NA, min=0, max=NA)
+    expect_equal(hist$mean(), 1.4)
+    expect_equal(hist$median(), 0.0)
+    expect_equal(hist$percentile(99.79), 100)
+    expect_equal(hist$fraction_below(199), 0.998)
+    expect_equal(hist$value_count(100), 2)
+    expect_equal(hist$value_fraction(100), 0.002)
+    expect_equal(hist$std(), 32.52752680423152)
+})
+
+test_that("A Histogram over a partial range works", {
+    test_file <- testthat::test_path("testdata", "test.d4")
+    file <- D4Source$new(test_file)
+
+    hist <- file$histogram("chr1", 0, 1000, NA, min=99, max=200)
+    expect_equal(hist$mean(), 0.2)
+    expect_equal(hist$median(), 99)
+    expect_equal(hist$percentile(99.79), 100)
+    expect_equal(hist$fraction_below(199), 0.998)
+    expect_equal(hist$value_count(100), 2)
+    expect_equal(hist$value_fraction(100), 0.002)
+    expect_equal(hist$std(), 4.467661580737736)
+})

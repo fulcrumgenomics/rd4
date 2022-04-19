@@ -67,6 +67,3 @@ test_that("A Histogram over a partial range works", {
     expect_equal(hist$std(), 4.467661580737736)
 })
 
-
-# TODO: add file level mean median etc
-# TOdO: add resampling

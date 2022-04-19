@@ -373,6 +373,7 @@ impl Query {
 }
 
 impl<'a> From<&'a Query> for (&'a str, u32, u32) {
+    /// Convert a [`Query`] into a tuple of (chromosome, start, stop)
     fn from(val: &'a Query) -> Self {
         (val.chr.as_ref(), val.left, val.right)
     }
@@ -387,21 +388,25 @@ impl From<ChromWrapper> for Robj {
     }
 }
 
-/// Represents a Histogram of counts of the values between the `min` and `max` used when creating the histogram
-///
-///
+/// Represents a Histogram of counts of the values between the `min` and `max` used when creating the histogram.
 #[derive(Debug, Clone)]
 struct Histogram {
+    /// The values below the `min`
     below: u32,
+    /// The values above the `max`
     above: u32,
+    /// The first value in the histogram (will be equal to `min`).
     first_value: i32,
+    /// The prefix sum created to speed up calculations on the histogram
     prefix_sum: Vec<u32>,
 }
 
 impl Histogram {
     /// Create a new histogram object with a vec of values and counts.
     fn new(mut values: Vec<(i32, u32)>, below: u32, above: u32) -> Self {
-        values.sort_unstable(); // TODO: I don't think this sort is needed, the "values" is the (value, count), and should be in value order I think?
+        // TODO: I don't think this sort is needed, the "values" is the (value, count), and should be in value order I think, unless
+        // there is some rare scenario on remote files where the inner task engine doesn't returned ordered values?
+        values.sort_unstable();
         let first_value = values[0].0;
         let mut prefix_sum = vec![below];
         let mut current_value = first_value;
@@ -428,7 +433,7 @@ impl Histogram {
     ///
     /// @export
     fn value_count(&self, value: i32) -> i32 {
-        // TODO: should the "value" be multiplied by the denominator, and be f64?
+        // TODO: should the "value" be multiplied by the denominator, and be f64? The implementation below matches pyd4.
         if value < self.first_value || self.first_value + (self.prefix_sum.len() as i32) - 1 < value
         {
             0
@@ -449,11 +454,12 @@ impl Histogram {
     ///
     /// @export
     fn value_fraction(&self, value: i32) -> f64 {
-        // TODO: same question about value and denominator
+        // TODO: same question about value and denominator. Current implementation matches pyd4
         self.value_count(value) as f64 / self.total_count() as f64
     }
 
     /// The fraction of values below the specified value (includes counts below the min of the specified range) out of the total counts (including those above and below the specified range).
+    ///
     /// @export
     fn fraction_below(&self, value: i32) -> f64 {
         if value < self.first_value || self.first_value + self.prefix_sum.len() as i32 - 1 < value {

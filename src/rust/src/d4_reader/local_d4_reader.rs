@@ -57,20 +57,14 @@ impl D4Reader for LocalD4Reader {
                         DecodeResult::Definitely(value) => value as f64,
                         DecodeResult::Maybe(value) => {
                             if let Some(st_value) = stab.decode(pos) {
-                                st_value as f64
+                                st_value as f64 / denominator
                             } else {
-                                value as f64
+                                value as f64 / denominator
                             }
                         }
                     })
             })
             .collect();
-
-        let result = if denominator == 1.0 {
-            result.into_iter().map(|v| v as f64).collect()
-        } else {
-            result.into_iter().map(|v| v as f64 / denominator).collect()
-        };
 
         QueryResult::new(
             query.clone(),
@@ -88,7 +82,7 @@ impl D4Reader for LocalD4Reader {
             &mut reader,
             &regions.iter().map(|r| r.into()).collect::<Vec<(&str, u32, u32)>>(),
         )
-        .expect("Failed to run mean tasks")
+        .expect("Failed to create mean tasks")
         .run();
         let mut output = vec![];
         for item in &result {

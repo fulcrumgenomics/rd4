@@ -46,13 +46,9 @@ impl D4Reader for HttpD4Reader {
                     self.source, &query.chr, query.left, query.right
                 )
             })
-            .map(|res| if let Ok((_, value)) = res { value as f64 } else { 0.0 })
+            .map(|res| if let Ok((_, value)) = res { value as f64 / denominator } else { 0.0 })
             .collect();
-        let result = if denominator == 1.0 {
-            result
-        } else {
-            result.into_iter().map(|v| v / denominator).collect()
-        };
+
         QueryResult::new(
             query.clone(),
             self.source.clone(),

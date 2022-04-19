@@ -61,6 +61,7 @@ pub(crate) trait D4Reader: Debug {
     /// supports queries over multiple tracks at once.
     fn query_track(&self, query: &Query, track: Option<&str>) -> QueryResult;
 
+    /// Compute the mean depth for each region in `regions` for the specified `track`.
     fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64>;
 
     /// Cast the object implementing this trait to [`Any`] to allow for downcasting.

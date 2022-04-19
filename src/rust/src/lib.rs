@@ -602,7 +602,7 @@ mod test {
             let resampled = file.resample(String::from("chr1"), 12, 22, None, String::from("mean"), r!(i32::na()), None);
             assert_eq!(resampled.result.len(), 1);
 
-            let resampled = file.resample(String::from("chr1"), 12, 22, None, String::from("mean"), r!(i32::na()), None);
+            let resampled = file.resample(String::from("chr1"), 12, 22, None, String::from("median"), r!(i32::na()), None);
             assert_eq!(resampled.result.len(), 1);
 
             let resampled = file.resample(String::from("chr1"), 0, 1000, None, String::from("mean"), r!(10), None);

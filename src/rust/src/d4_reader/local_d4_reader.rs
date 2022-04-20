@@ -75,7 +75,6 @@ impl D4Reader for LocalD4Reader {
         )
     }
 
-    /// Compute the mean depth for each region in `regions` for the specified `track`.
     fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64> {
         let mut reader = self.open(track);
         let result = Mean::create_task(

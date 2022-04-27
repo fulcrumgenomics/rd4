@@ -94,13 +94,25 @@ impl D4Reader for HttpD4Reader {
             bin_size
         }
     }
+
+    fn percentile(&self, _regions: &[Query], _track: Option<&str>, _percentile: f64) -> Vec<f64> {
+        unimplemented!("Percentile functionality is not implemented for remote D4 sources.")
+    }
+
+    fn histogram(
+        &self,
+        _regions: &[Query],
+        _min: i32,
+        _max: i32,
+        _track: Option<&str>,
+    ) -> Vec<crate::Histogram> {
+        unimplemented!("Histogram functionality is not implemented for remote D4 sources.")
+    }
 }
 
 impl HttpD4Reader {
     /// Open an [`HttpD4Reader`] on the specified track.
     fn open(&self, track: Option<&str>) -> d4::ssio::D4TrackReader<HttpReader> {
-        // TODO: D4TrackReader::open splits the path on `:` and takes anything to the right as a track specifier
-        // There should be a way to create a reader like remote with the optional track name
         let conn = d4::ssio::http::HttpReader::new(&self.source)
             .unwrap_or_else(|_| panic!("Failed to open remote reader for: {:?} ", self.source));
         d4::ssio::D4TrackReader::from_reader(conn, track).unwrap_or_else(|_| {

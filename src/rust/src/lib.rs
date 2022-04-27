@@ -2,28 +2,47 @@
 //!
 //! See R documentation for how to use this.
 
-// TODO: broader "range" parsing more like python api where you can give just a chr and it will get the length for you
-
 mod d4_reader;
+use std::str::FromStr;
+
 use d4::Chrom;
 use d4_reader::{http_d4_reader::HttpD4Reader, local_d4_reader::LocalD4Reader, D4Reader};
 use extendr_api::prelude::*;
 use serde::{Deserialize, Serialize};
 
-/// Helper fuction to convert an [`Robj`] to an i32.
-fn robj_to_i32(obj: &Robj) -> Option<i32> {
-    if obj.is_na() {
-        return None;
+#[derive(Debug)]
+pub struct Error(pub String);
+
+impl std::error::Error for Error {}
+
+// pub type Result<T> = std::result::Result<T, Error>;
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error from Rust: {}", self.0)
     }
-    // There does not appear to be a transparent conversion from RObj to i32 that just works from the R side with no annoatation.
-    // Since R treats numbers as f64 by default, that's what we accept here and then cast to i32.
-    if let Ok(value) = <Option<f64>>::from_robj(obj) {
-        return value.map(|v| v as i32);
+}
+
+#[derive(Debug, Copy, Clone)]
+enum ResamplingMethod {
+    Mean,
+    Median,
+}
+
+impl FromStr for ResamplingMethod {
+    type Err = Error;
+
+    /// Convert a string to a [`ResamplingMethod`].
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s {
+            "mean" | "Mean" | "MEAN" => Ok(ResamplingMethod::Mean),
+            "median" | "Median" | "MEDIAN" => Ok(ResamplingMethod::Median),
+            _ => Err(Error(format!(
+                "Invalid resampling method: {}. Must be one of [mean, median].",
+                s
+            ))),
+        }
     }
-    if let Ok(value) = <Option<i32>>::from_robj(obj) {
-        return value;
-    }
-    panic!("Expected numeric object, found: {:?}", obj);
 }
 
 /// The R object for reading from a D4 source.
@@ -126,11 +145,7 @@ impl D4Source {
     /// @export
     fn median(&self, chr: String, left: u32, right: u32, track: Option<String>) -> f64 {
         let query = Query::new(chr, left, right);
-        if let Some(reader) = self.inner.as_any().downcast_ref::<LocalD4Reader>() {
-            reader.percentile(&[query], track.as_deref(), 50.0)[0]
-        } else {
-            panic!("Median operation is not supported on remote D4 sources.")
-        }
+        self.inner.percentile(&[query], track.as_deref(), 50.0)[0]
     }
 
     /// Returns the value histogram for the given region.
@@ -143,7 +158,7 @@ impl D4Source {
     /// - `right` - the exclusive end position
     /// - `track` - the optional track to query, if NA, the first track in the source will be queried
     /// - `min` - the smallest bucket of the histogram
-    /// - `max` - the largest bucket of the histogram, 1024 if None
+    /// - `max` - the largest bucket of the histogram
     ///
     /// @export
     fn histogram(
@@ -153,19 +168,11 @@ impl D4Source {
         right: u32,
         track: Option<String>,
         min: i32,
-        max: Robj,
+        max: i32,
     ) -> Histogram {
+        assert!(max > min, "max ({}) must be greater than min ({})", max, min);
         let query = Query::new(chr, left, right);
-        let max = robj_to_i32(&max);
-        if let Some(reader) = self.inner.as_any().downcast_ref::<LocalD4Reader>() {
-            reader
-                .histogram(&[query], min, max.unwrap_or(1024), track.as_deref())
-                .into_iter()
-                .next()
-                .unwrap()
-        } else {
-            panic!("Histogram operation is not supported on remote D4 sources.")
-        }
+        self.inner.histogram(&[query], min, max, track.as_deref()).into_iter().next().unwrap()
     }
 
     /// Returns the percentile value in the given region.
@@ -189,11 +196,7 @@ impl D4Source {
         percentile: f64,
     ) -> f64 {
         let query = Query::new(chr, left, right);
-        if let Some(reader) = self.inner.as_any().downcast_ref::<LocalD4Reader>() {
-            reader.percentile(&[query], track.as_deref(), percentile)[0]
-        } else {
-            panic!("Histogram operation is not supported on remote D4 sources.")
-        }
+        self.inner.percentile(&[query], track.as_deref(), percentile)[0]
     }
 
     /// Re-sample the given region.
@@ -204,7 +207,7 @@ impl D4Source {
     /// - `right` - the exclusive end position
     /// - `track` - the optional track to query, if NA, the first track in the source will be queried
     /// - `method` - the method to use for resampling, mean and median are supported. Only mean is supported for remote files
-    /// - `bin_size` - optional bin_size argument sets the width of bins to look at for re-sampling
+    /// - `bin_size` - bin_size argument sets the width of bins to look at for re-sampling
     /// - `allow_bin_size_adjustment` - only used for remote files, this will optimize the bin size for reading over a network
     ///
     /// @export
@@ -216,16 +219,13 @@ impl D4Source {
         right: u32,
         track: Option<String>,
         method: String,
-        bin_size: Robj,
+        bin_size: i32,
         allow_bin_size_adjustment: Option<bool>,
     ) -> QueryResult {
-        let bin_size = robj_to_i32(&bin_size);
-        let bin_size = self.inner.adjust_bin_size(
-            bin_size.unwrap_or(1_000) as u32,
-            allow_bin_size_adjustment.unwrap_or(true),
-        );
+        let bin_size =
+            self.inner.adjust_bin_size(bin_size as u32, allow_bin_size_adjustment.unwrap_or(true));
         let query = Query::new(chr, left, right);
-        assert!(bin_size > 0, "Invalid bin_size argument. Must be greater than 0.");
+        assert!(bin_size > 0, "Invalid bin_size argument: {:?}. Must be greater than 0.", bin_size);
 
         // Split the given region into bin size chunks
         let mut splitted = vec![];
@@ -237,19 +237,9 @@ impl D4Source {
             begin = bin_end;
         }
 
-        let values = if method == "mean" {
-            self.inner.mean(&splitted, track.as_deref())
-        } else if method == "median" {
-            if let Some(reader) = self.inner.as_any().downcast_ref::<LocalD4Reader>() {
-                reader.percentile(&splitted, track.as_deref(), 50.0)
-            } else {
-                panic!("Re-sampling by median is only supported with local D4 Files")
-            }
-        } else {
-            panic!(
-                "{}, is an unsupported resampling method. Please choose one of [mean, median]",
-                method
-            );
+        let values = match ResamplingMethod::from_str(&method).unwrap() {
+            ResamplingMethod::Mean => self.inner.mean(&splitted, track.as_deref()),
+            ResamplingMethod::Median => self.inner.percentile(&splitted, track.as_deref(), 50.0),
         };
 
         QueryResult::new(query, self.get_source(), track, values, Some(bin_size as i32))
@@ -391,21 +381,42 @@ impl From<ChromWrapper> for Robj {
 /// Represents a Histogram of counts of the values between the `min` and `max` used when creating the histogram.
 #[derive(Debug, Clone)]
 struct Histogram {
-    /// The values below the `min`
+    /// The sum of the count of values below the `min`
     below: u32,
-    /// The values above the `max`
+    /// The sum of the count of values above the `max`
     above: u32,
     /// The first value in the histogram (will be equal to `min`).
     first_value: i32,
-    /// The prefix sum created to speed up calculations on the histogram
+    /// The prefix sum created to speed up calculations on the histogram.
+    ///
+    /// The prefix sum is the running sum of the counts. For example:
+    ///
+    /// ```
+    /// min = 5
+    /// max = 11
+    /// below = 10
+    /// above = 10
+    /// # The `values` passed into [`Histogram::new`] are in the following format, but are just tuples.
+    /// histogram_array =  [
+    ///     (value = 5, count = 2),
+    ///     (value = 6, count = 3),
+    ///     (value = 7, count = 2),
+    ///     (value = 8, count = 10),
+    ///     (value = 9, count = 12),
+    ///     (value = 10, count = 2),
+    ///     (value = 11, count = 0)
+    /// ]
+    ///
+    /// prefix_sum = [5, 7, 10, 12, 22, 34, 36, 36]
+    /// ```
     prefix_sum: Vec<u32>,
 }
 
 impl Histogram {
     /// Create a new histogram object with a vec of values and counts.
+    ///
+    /// This is intended to create a [`Histogram`] based on the output of [`d4::task::Histogram::with_bin_range`].
     fn new(mut values: Vec<(i32, u32)>, below: u32, above: u32) -> Self {
-        // TODO: I don't think this sort is needed, the "values" is the (value, count), and should be in value order I think, unless
-        // there is some rare scenario on remote files where the inner task engine doesn't returned ordered values?
         values.sort_unstable();
         let first_value = values[0].0;
         let mut prefix_sum = vec![below];
@@ -433,7 +444,6 @@ impl Histogram {
     ///
     /// @export
     fn value_count(&self, value: i32) -> i32 {
-        // TODO: should the "value" be multiplied by the denominator, and be f64? The implementation below matches pyd4.
         if value < self.first_value || self.first_value + (self.prefix_sum.len() as i32) - 1 < value
         {
             0
@@ -454,7 +464,6 @@ impl Histogram {
     ///
     /// @export
     fn value_fraction(&self, value: i32) -> f64 {
-        // TODO: same question about value and denominator. Current implementation matches pyd4
         self.value_count(value) as f64 / self.total_count() as f64
     }
 
@@ -556,7 +565,7 @@ mod test {
     use extendr_api::prelude::*;
     use tempfile::TempDir;
 
-    use crate::{D4Source, Query};
+    use crate::D4Source;
 
     fn create_d4_file<P: AsRef<Path>>(dir: P) -> PathBuf {
         let values = vec![(10, 100), (15, 200), (20, 100), (50, 1000)];
@@ -605,15 +614,15 @@ mod test {
             assert_eq!(file.median(String::from("chr1"), 12, 22, None), 0.0);
             assert_eq!(file.percentile(String::from("chr1"), 12, 22, None, 50.0), 0.0);
 
-            let resampled = file.resample(String::from("chr1"), 12, 22, None, String::from("mean"), r!(i32::na()), None);
+            let resampled = file.resample(String::from("chr1"), 12, 22, None, String::from("mean"), 1024, None);
             assert_eq!(resampled.result.len(), 1);
 
-            let resampled = file.resample(String::from("chr1"), 12, 22, None, String::from("median"), r!(i32::na()), None);
+            let resampled = file.resample(String::from("chr1"), 12, 22, None, String::from("median"), 1024, None);
             assert_eq!(resampled.result.len(), 1);
 
-            let resampled = file.resample(String::from("chr1"), 0, 1000, None, String::from("mean"), r!(10), None);
+            let resampled = file.resample(String::from("chr1"), 0, 1000, None, String::from("mean"), 10, None);
             assert_eq!(resampled.result.len(), 100);
-            let resampled = file.resample(String::from("chr1"), 0, 1000, None, String::from("median"), r!(10), None);
+            let resampled = file.resample(String::from("chr1"), 0, 1000, None, String::from("median"), 10, None);
             assert_eq!(resampled.result.len(), 100);
         }
     }
@@ -625,7 +634,7 @@ mod test {
             let data = create_d4_file(tempdir.path());
 
             let file = D4Source::new(data.to_str().unwrap());
-            let hist = file.histogram(String::from("chr1"), 0, 1000, None, 99, r!(200));
+            let hist = file.histogram(String::from("chr1"), 0, 1000, None, 99, 200);
             assert_eq!(hist.below, 996);
             assert_eq!(hist.above, 2);
             assert_eq!(hist.mean(), 0.2);
@@ -645,7 +654,7 @@ mod test {
             let data = create_d4_file(tempdir.path());
 
             let file = D4Source::new(data.to_str().unwrap());
-            let hist = file.histogram(String::from("chr1"), 0, 1000, None, 0, r!(i32::na()));
+            let hist = file.histogram(String::from("chr1"), 0, 1000, None, 0, 1024);
             assert_eq!(hist.below, 0);
             assert_eq!(hist.above, 0);
             assert_eq!(hist.mean(), 1.4);
@@ -655,6 +664,70 @@ mod test {
             assert_eq!(hist.value_count(100), 2);
             assert_eq!(hist.value_fraction(100), 0.002);
             assert_eq!(hist.std(), 32.527_526_804_231_52);
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "max (0) must be greater than min (0)")]
+    fn test_histogram_hist_min_max_same() {
+        test! {
+            let tempdir = TempDir::new().unwrap();
+            let data = create_d4_file(tempdir.path());
+
+            let file = D4Source::new(data.to_str().unwrap());
+            let _hist = file.histogram(String::from("chr1"), 100, 100, None, 0, 0);
+        }
+    }
+
+    #[test]
+    fn test_histogram_zero_bp_range() {
+        test! {
+            let tempdir = TempDir::new().unwrap();
+            let data = create_d4_file(tempdir.path());
+
+            let file = D4Source::new(data.to_str().unwrap());
+            let hist = file.histogram(String::from("chr1"), 100, 100, None, 0, 10);
+            assert_eq!(hist.below, 0);
+            assert_eq!(hist.above, 0);
+            assert!(hist.mean().is_nan());
+            assert_eq!(hist.median(), 0);
+            assert_eq!(hist.percentile(99.79), 0);
+            assert_eq!(hist.fraction_below(199), 0.0);
+            assert_eq!(hist.value_count(100), 0);
+            assert!(hist.value_fraction(100).is_nan());
+            assert!(hist.std().is_nan());
+        }
+    }
+
+    #[test]
+    fn test_histogram_one_bp_range() {
+        test! {
+            let tempdir = TempDir::new().unwrap();
+            let data = create_d4_file(tempdir.path());
+
+            let file = D4Source::new(data.to_str().unwrap());
+            let hist = file.histogram(String::from("chr1"), 100, 101, None, 0, 10);
+            assert_eq!(hist.below, 0);
+            assert_eq!(hist.above, 0);
+            assert_eq!(hist.mean(), 0.0);
+            assert_eq!(hist.median(), 0);
+            assert_eq!(hist.percentile(99.79), 0);
+            assert_eq!(hist.fraction_below(199), 0.0);
+            assert_eq!(hist.value_count(100), 0);
+            assert_eq!(hist.value_fraction(100), 0.0);
+            assert_eq!(hist.std(), 0.0);
+        }
+    }
+
+    #[test]
+    fn test_histogram_value_count() {
+        test! {
+            let tempdir = TempDir::new().unwrap();
+            let data = create_d4_file(tempdir.path());
+
+            let file = D4Source::new(data.to_str().unwrap());
+            let hist = file.histogram(String::from("chr1"), 0, 1000, None, 100, 200);
+            assert_eq!(hist.value_count(100), 2);
         }
     }
 }

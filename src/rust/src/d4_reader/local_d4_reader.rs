@@ -90,33 +90,7 @@ impl D4Reader for LocalD4Reader {
         output
     }
 
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn get_demoninator(&self) -> f64 {
-        self.open(None).header().get_denominator()
-    }
-
-    /// For local files no adjustment is needed.
-    fn adjust_bin_size(&self, bin_size: u32, _allow_bin_size_adjustment: bool) -> u32 {
-        bin_size
-    }
-}
-
-impl LocalD4Reader {
-    /// Open a [`LocalD4Reader`] for the specified track
-    fn open(&self, track: Option<&str>) -> d4::D4TrackReader {
-        // TODO: D4TrackReader::open splits the path on `:` and takes anything to the right as a track specifier
-        // There should be a way to create a reader like remote with the optional track name
-        let track_spec =
-            if let Some(track) = track { [&self.path, track].join(":") } else { self.path.clone() };
-        d4::D4TrackReader::open(&track_spec)
-            .unwrap_or_else(|_| panic!("Failed to create local reader for: {:?}", self.path))
-    }
-
-    /// Compute the percentile value for each input region
-    pub fn percentile(&self, regions: &[Query], track: Option<&str>, percentile: f64) -> Vec<f64> {
+    fn percentile(&self, regions: &[Query], track: Option<&str>, percentile: f64) -> Vec<f64> {
         let mut output = vec![];
         // Inner loop is _percentile_impl in the python code
         for query in regions {
@@ -172,15 +146,7 @@ impl LocalD4Reader {
         output
     }
 
-    /// histogram(regions, min, max)
-    ///
-    /// Returns the histogram of values in the given regions
-    ///
-    /// # Arguments
-    /// - `regions` - The list of regions we are asking
-    /// - `min` - The first bucket of the histogram
-    /// - `max` - The exclusive last bucket of this histogram (i.e. a max of 100 will mean the histogram goes up to 99)
-    pub fn histogram(
+    fn histogram(
         &self,
         regions: &[Query],
         min: i32,
@@ -201,10 +167,33 @@ impl LocalD4Reader {
         for item in &result {
             // The result item is the (number of values less than min, an array with count for each value from min..max, then the number of values >= max)
             let (below, hist, above) = item.output;
-            let hist: Vec<_> = hist.iter().enumerate().map(|(a, &b)| (a as i32 + min, b)).collect(); // TODO - This differs from the pyd4 api, which does not add `a + min` and just lets the "value" be 0
+            let hist: Vec<_> = hist.iter().enumerate().map(|(a, &b)| (a as i32 + min, b)).collect(); // This differs from the pyd4 api, which does not add `a + min` and just lets the "value" be 0
             let hist = Histogram::new(hist, *below, *above);
             output.push(hist);
         }
         output
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn get_demoninator(&self) -> f64 {
+        self.open(None).header().get_denominator()
+    }
+
+    /// For local files no adjustment is needed.
+    fn adjust_bin_size(&self, bin_size: u32, _allow_bin_size_adjustment: bool) -> u32 {
+        bin_size
+    }
+}
+
+impl LocalD4Reader {
+    /// Open a [`LocalD4Reader`] for the specified track
+    fn open(&self, track: Option<&str>) -> d4::D4TrackReader {
+        let track_spec =
+            if let Some(track) = track { [&self.path, track].join(":") } else { self.path.clone() };
+        d4::D4TrackReader::open(&track_spec)
+            .unwrap_or_else(|_| panic!("Failed to create local reader for: {:?}", self.path))
     }
 }

@@ -2,7 +2,7 @@ use std::{any::Any, fmt::Debug};
 
 use d4::Chrom;
 
-use crate::{Query, QueryResult};
+use crate::{Histogram, Query, QueryResult};
 
 pub(crate) mod http_d4_reader;
 pub(crate) mod local_d4_reader;
@@ -33,6 +33,10 @@ pub(crate) trait D4Reader: Debug {
     fn get_tracks(&self) -> Vec<String>;
 
     /// Get the denominator from the header.
+    ///
+    /// If the denominator is not 1.0, then D4 is possibly storing floating numbers. i.e. The input value is 4.123_456_789
+    /// and the "denominator" (same terminology as pyd4 uses) is 1_000_000_000, so the value stored is 4_123_456_789 with
+    /// no loss of precision.
     fn get_demoninator(&self) -> f64;
 
     /// Return the source location for this [`D4Reader`]
@@ -63,6 +67,30 @@ pub(crate) trait D4Reader: Debug {
 
     /// Compute the mean depth for each region in `regions` for the specified `track`.
     fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64>;
+
+    /// Compute the mean depth for each region in `regions` for the specified `track`.
+    fn median(&self, regions: &[Query], track: Option<&str>) -> Vec<f64> {
+        self.percentile(regions, track, 50.0)
+    }
+
+    /// Compute the percentile value for each input region
+    fn percentile(&self, regions: &[Query], track: Option<&str>, percentile: f64) -> Vec<f64>;
+
+    /// histogram(regions, min, max)
+    ///
+    /// Returns the histogram of values in the given regions
+    ///
+    /// # Arguments
+    /// - `regions` - The list of regions we are asking
+    /// - `min` - The first bucket of the histogram
+    /// - `max` - The exclusive last bucket of this histogram (i.e. a max of 100 will mean the histogram goes up to 99)
+    fn histogram(
+        &self,
+        regions: &[Query],
+        min: i32,
+        max: i32,
+        track: Option<&str>,
+    ) -> Vec<Histogram>;
 
     /// Cast the object implementing this trait to [`Any`] to allow for downcasting.
     fn as_any(&self) -> &dyn Any;

@@ -27,10 +27,10 @@ test_that("A D4 File can be opened and a region can be resampled", {
     test_file <- testthat::test_path("testdata", "test.d4")
     file <- D4Source$new(test_file)
 
-    result <- file$resample("chr1", 12, 22, track=NA, method="mean", bin_size=NA, allow_bin_size_adjustment=NA)
+    result <- file$resample("chr1", 12, 22, track=NA, method="mean", bin_size=64000, allow_bin_size_adjustment=NA)
     expect_equal(length(result$results()), 1)
 
-    result <- file$resample("chr1", 12, 22, track=NA, method="median", bin_size=NA, allow_bin_size_adjustment=NA)
+    result <- file$resample("chr1", 12, 22, track=NA, method="median", bin_size=64000, allow_bin_size_adjustment=NA)
     expect_equal(length(result$results()), 1)
 
     result <- file$resample("chr1", 0, 1000, track=NA, method="mean", bin_size=10, allow_bin_size_adjustment=NA)
@@ -43,7 +43,7 @@ test_that("A D4 File can be opened and a region can be resampled", {
 test_that("A Histogram over a full range works", {
     test_file <- testthat::test_path("testdata", "test.d4")
     file <- D4Source$new(test_file)
-    hist <- file$histogram("chr1", 0, 1000, NA, min=0, max=NA)
+    hist <- file$histogram("chr1", 0, 1000, track=NA, min=0, max=1024)
     expect_equal(hist$mean(), 1.4)
     expect_equal(hist$median(), 0.0)
     expect_equal(hist$percentile(99.79), 100)
@@ -57,7 +57,7 @@ test_that("A Histogram over a partial range works", {
     test_file <- testthat::test_path("testdata", "test.d4")
     file <- D4Source$new(test_file)
 
-    hist <- file$histogram("chr1", 0, 1000, NA, min=99, max=200)
+    hist <- file$histogram("chr1", 0, 1000, track=NA, min=99, max=200)
     expect_equal(hist$mean(), 0.2)
     expect_equal(hist$median(), 99)
     expect_equal(hist$percentile(99.79), 100)

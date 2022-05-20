@@ -30,6 +30,16 @@ D4Source$get_tracks <- function() .Call(wrap__D4Source__get_tracks, self)
 
 D4Source$query <- function(chr, left, right, track) .Call(wrap__D4Source__query, self, chr, left, right, track)
 
+D4Source$mean <- function(chr, left, right, track) .Call(wrap__D4Source__mean, self, chr, left, right, track)
+
+D4Source$median <- function(chr, left, right, track) .Call(wrap__D4Source__median, self, chr, left, right, track)
+
+D4Source$histogram <- function(chr, left, right, track, min, max) .Call(wrap__D4Source__histogram, self, chr, left, right, track, min, max)
+
+D4Source$percentile <- function(chr, left, right, track, percentile) .Call(wrap__D4Source__percentile, self, chr, left, right, track, percentile)
+
+D4Source$resample <- function(chr, left, right, track, method, bin_size, allow_bin_size_adjustment) .Call(wrap__D4Source__resample, self, chr, left, right, track, method, bin_size, allow_bin_size_adjustment)
+
 #' @rdname D4Source
 #' @usage NULL
 #' @export
@@ -37,6 +47,34 @@ D4Source$query <- function(chr, left, right, track) .Call(wrap__D4Source__query,
 
 #' @export
 `[[.D4Source` <- `$.D4Source`
+
+#' The [`Histogram`] API.
+#' @export
+Histogram <- new.env(parent = emptyenv())
+
+Histogram$value_count <- function(value) .Call(wrap__Histogram__value_count, self, value)
+
+Histogram$total_count <- function() .Call(wrap__Histogram__total_count, self)
+
+Histogram$value_fraction <- function(value) .Call(wrap__Histogram__value_fraction, self, value)
+
+Histogram$fraction_below <- function(value) .Call(wrap__Histogram__fraction_below, self, value)
+
+Histogram$mean <- function() .Call(wrap__Histogram__mean, self)
+
+Histogram$percentile <- function(percentile) .Call(wrap__Histogram__percentile, self, percentile)
+
+Histogram$median <- function() .Call(wrap__Histogram__median, self)
+
+Histogram$std <- function() .Call(wrap__Histogram__std, self)
+
+#' @rdname Histogram
+#' @usage NULL
+#' @export
+`$.Histogram` <- function (self, name) { func <- Histogram[[name]]; environment(func) <- environment(); func }
+
+#' @export
+`[[.Histogram` <- `$.Histogram`
 
 #' A context object that holds onto the original query parameters
 #' @export
@@ -67,6 +105,8 @@ QueryResult$query <- function() .Call(wrap__QueryResult__query, self)
 QueryResult$source <- function() .Call(wrap__QueryResult__source, self)
 
 QueryResult$track <- function() .Call(wrap__QueryResult__track, self)
+
+QueryResult$bin_size <- function() .Call(wrap__QueryResult__bin_size, self)
 
 #' @rdname QueryResult
 #' @usage NULL

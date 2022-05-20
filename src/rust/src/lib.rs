@@ -61,8 +61,10 @@ struct D4Source {
 /// This is the primary way of interacting with D4 sources.
 ///
 /// @examples
+/// \dontrun{
 /// d4 <- D4File$new(path)
 /// chroms <- d4$get_chroms()
+/// }
 /// @export
 #[extendr(use_try_from = true)]
 impl D4Source {

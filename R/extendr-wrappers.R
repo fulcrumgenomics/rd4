@@ -13,8 +13,10 @@ NULL
 #' This is the primary way of interacting with D4 sources.
 #'
 #' @examples
-#' d4 <- D4File$new(path)
+#' \dontrun{
+#' d4 <- D4Source$new(path)
 #' chroms <- d4$get_chroms()
+#' }
 #' @export
 D4Source <- new.env(parent = emptyenv())
 

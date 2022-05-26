@@ -1,2 +1,9 @@
 src/rust/target
 src/rust/Cargo.lock
+.Rproj.user
+.Rbuildignore
+.Rprofile
+rd4.Rproj
+renv.lock
+renv/
+.Rhistory

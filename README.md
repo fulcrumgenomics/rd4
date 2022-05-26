@@ -1,35 +1,82 @@
 # rd4
 
-## Install R Deps
+## Overview
 
-- R itself
-    - https://www.digitalocean.com/community/tutorials/how-to-install-r-on-ubuntu-20-04-quickstart
-- [`usethis`](https://usethis.r-lib.org/)
-    - `install.packages("usethis")`
-- [`devtools`](https://www.r-project.org/nosvn/pandoc/devtools.html)
-    - `install.packages("devtools")`
-- [`remotes`]()
-    - `install.packages("remotes")`
-- [`rextendr`]()
-    - `remotes::install_github("extendr/rextendr")`
+TBA
 
-## Create the template repo
+## Installation
+
+TBA
+
+## Usage
 
 ```R
-usethis::create_package("~/dev/rd4")
-usethis::use_testthat()
-setwd("~/dev/rd4")
-rextendr::use_extendr()
-rextendr::document()
+# Open a D4 file
+d4_file <- "file.d4"
+d4_source <- D4Source$new(d4_file)
+
+# Identify chromosomes and tracks
+chroms <- d4_source$get_chroms()
+tracks <- d4_source$get_tracks()
+
+# Query a region
+query <- d4_source$query("chr1", 100, 100000, NA)
+query_results <- query$results()
+query_chr <- query$query()$chr()
+
+# Summary statistics for a region
+mean <- d4_source$mean("chr1", 100, 100000, NA)
+median <- d4_source$median("chr1", 100, 100000, NA)
+histogram <- d4_source$histogram("chr1", 100, 100000, "", min = 0, max = 10)
+histogram_total <- histogram$total_count()
+percentile <- d4_source$percentile("chr1", 100, 100000, "", percentile = 0.5)
+
+# Resample a region
+resample <- d4_source$resample("chr1", 50000, 100000, NA, method = "mean", bin_size = 10, allow_bin_size_adjustment = FALSE)
+resample_results <- resample$results()
 ```
 
-## Build and test things manually
+## For developers
+
+### R dependencies
+
+Consider using [renv](https://rstudio.github.io/renv/articles/renv.html) to isolate an R environment for `rd4` development.
+
+- [remotes](https://cran.r-project.org/web/packages/remotes/index.html)
+- [rextendr](https://github.com/extendr/rextendr)
+- [devtools](https://www.r-project.org/nosvn/pandoc/devtools.html)
+- [BiocCheck](https://bioconductor.org/packages/release/bioc/html/BiocCheck.html)
+
+### Developing an R package using Rust code
+
+Note: these steps were already done for `rd4` and don't need to be repeated by new developers.
+
+- [rextendr](https://extendr.github.io/rextendr/index.html) package
+- [Instructions](https://extendr.github.io/rextendr/articles/package.html) on setting up and developing a package
+
+
+### Build and test the package locally
 
 ```R
-setwd("~/dev/rd4")
+# Set working directory to package root
+setwd(".")
+
+# Compile Rust code into R functions and auto-generate R documentation (yes, rextendr::document() does both)
 rextendr::document()
+
+# Load the package
 devtools::load_all(".")
+
+# Run CRAN and/or Bioconductor checks
+devtools::check()
+BiocCheck(".")
 ```
+
+
+### Add new Rust code
+
+[rextendr vignette](https://extendr.github.io/rextendr/articles/package.html)
+
 
 ### Test Rust code
 
@@ -37,21 +84,3 @@ devtools::load_all(".")
 cd src/rust/
 cargo test
 ```
-
-### Test R Code
-
-```R
-# In development dir
-devtools::check() # Will check that the package as a whole is well formed
-devtools::test() # will run tets in `tests/testthat`
-```
-
-## Example
-
-```R
-devtools::load_all(".")
-file <- D4File::new("path_to_file.d4")
-result <- file$query("chr1", 100, 1000)
-result <- result$result()
-```
-

@@ -10,7 +10,7 @@ test_that("A D4 File can be opened and queried", {
     test_file <- testthat::test_path("testdata", "test.d4")
     file <- D4Source$new(test_file)
 
-    expect_equal(file$mean("chr1", 12, 22, track=NA), 30.0)
+    expect_equal(file$mean("chr1", 12, 22, track=NA), 30.00)
     expect_equal(file$median("chr1", 12, 22, track=NA), 0.0)
     expect_equal(file$percentile("chr1", 12, 22, track=NA, 50.0), 0.0)
 
@@ -27,16 +27,24 @@ test_that("A D4 File can be opened and a region can be resampled", {
     test_file <- testthat::test_path("testdata", "test.d4")
     file <- D4Source$new(test_file)
 
-    result <- file$resample("chr1", 12, 22, track=NA, method="mean", bin_size=NA, allow_bin_size_adjustment=NA)
+    result <- file$resample(
+        "chr1", 12, 22, track=NA, method="mean", bin_size=NA, 
+        allow_bin_size_adjustment=NA)
     expect_equal(length(result$results()), 1)
 
-    result <- file$resample("chr1", 12, 22, track=NA, method="median", bin_size=NA, allow_bin_size_adjustment=NA)
+    result <- file$resample(
+        "chr1", 12, 22, track=NA, method="median", bin_size=NA, 
+        allow_bin_size_adjustment=NA)
     expect_equal(length(result$results()), 1)
 
-    result <- file$resample("chr1", 0, 1000, track=NA, method="mean", bin_size=10, allow_bin_size_adjustment=NA)
+    result <- file$resample(
+        "chr1", 0, 1000, track=NA, method="mean", bin_size=10, 
+        allow_bin_size_adjustment=NA)
     expect_equal(length(result$results()), 100)
 
-    result <- file$resample("chr1", 0, 1000, track=NA, method="median", bin_size=10, allow_bin_size_adjustment=NA)
+    result <- file$resample(
+        "chr1", 0, 1000, track=NA, method="median", bin_size=10, 
+        allow_bin_size_adjustment=NA)
     expect_equal(length(result$results()), 100)
 })
 
@@ -66,4 +74,3 @@ test_that("A Histogram over a partial range works", {
     expect_equal(hist$value_fraction(100), 0.002)
     expect_equal(hist$std(), 4.467661580737736)
 })
-

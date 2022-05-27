@@ -69,7 +69,7 @@ devtools::load_all(".")
 
 # Run CRAN and/or Bioconductor checks
 devtools::check()
-BiocCheck(".")
+BiocCheck::BiocCheck()
 ```
 
 

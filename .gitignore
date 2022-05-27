@@ -7,3 +7,4 @@ rd4.Rproj
 renv.lock
 renv/
 .Rhistory
+inst/doc

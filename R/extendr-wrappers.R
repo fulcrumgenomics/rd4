@@ -26,8 +26,6 @@ D4Source$get_source <- function() .Call(wrap__D4Source__get_source, self)
 
 D4Source$get_chroms <- function() .Call(wrap__D4Source__get_chroms, self)
 
-D4Source$custom <- function() .Call(wrap__D4Source__custom, self)
-
 D4Source$get_tracks <- function() .Call(wrap__D4Source__get_tracks, self)
 
 D4Source$query <- function(chr, left, right, track) .Call(wrap__D4Source__query, self, chr, left, right, track)

@@ -77,11 +77,6 @@ impl D4Source {
         List::from_values(self.inner.get_chroms().into_iter().map(ChromWrapper))
     }
 
-    /// @export
-    fn custom(&self) -> String {
-        String::from("CUSTOM")
-    }
-
     /// List all tracks in the [`D4Source`]
     /// @export
     fn get_tracks(&self) -> Strings {
@@ -194,7 +189,7 @@ impl D4Source {
         if let Some(reader) = self.inner.as_any().downcast_ref::<LocalD4Reader>() {
             reader.percentile(&[query], track.as_deref(), percentile)[0]
         } else {
-            panic!("Histogram operation is not supported on remote D4 sources.")
+            panic!("Percentile operation is not supported on remote D4 sources.")
         }
     }
 

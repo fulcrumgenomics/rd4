@@ -155,7 +155,11 @@ test_that("A Histogram over a partial range works", {
   expect_equal(hist$std(), 4.467661580737736)
 })
 
-test_that("percentile() raises error for invalid percentile value", {expect_true(FALSE)})
+test_that("percentile() raises error for invalid percentile value", {
+  expect_error(source_multitrack$percentile("chr3", 1000000, 2000000, "track2", -1), "Percentile must be in (0,1]")
+  expect_error(source_multitrack$percentile("chr3", 1000000, 2000000, "track2", 0), "Percentile must be in (0,1]")
+  expect_error(source_multitrack$percentile("chr3", 1000000, 2000000, "track2", 1.1), "Percentile must be in (0,1]")
+})
 
 test_that("percentile() works for a region with no data", {
   expect_equal(source_multitrack$percentile("chr3", 1000000, 2000000, "track2", 1), 0)
@@ -175,26 +179,19 @@ test_that("percentile() returns the same value as median() for percentile=0.5", 
   )
 })
 
-test_that("A D4 File can be opened and a region can be resampled", {
-  result <- source_example3$resample(
-    "chr1", 12, 22, track=NA, method="mean", bin_size=NA, 
-    allow_bin_size_adjustment=NA)
-  expect_equal(length(result$results()), 1)
-  
-  result <- source_example3$resample(
-    "chr1", 12, 22, track=NA, method="median", bin_size=NA, 
-    allow_bin_size_adjustment=NA)
-  expect_equal(length(result$results()), 1)
-  
-  result <- source_example3$resample(
-    "chr1", 0, 1000, track=NA, method="mean", bin_size=10, 
-    allow_bin_size_adjustment=NA)
-  expect_equal(length(result$results()), 100)
-  
-  result <- source_example3$resample(
-    "chr1", 0, 1000, track=NA, method="median", bin_size=10, 
-    allow_bin_size_adjustment=NA)
-  expect_equal(length(result$results()), 100)
+test_that("resample() works for a region with no data", {
+  expect_equal(source_example1$resample("chr1", 1000000, 2000000, NA, "median", 1000, FALSE)$results(), rep(0, 1000))
+})
+
+test_that("resample() works for a region with some empty positions and some data and median method", {
+  expect_equal(source_example1$resample("chr1", 17027540, 17027570, NA, "median", 10, FALSE)$results(), c(0, 1, 2))
+})
+
+test_that("resample() works for a region with multiple non-empty tracks and mean method", {
+  expect_equal(
+    source_multitrack$resample("chr1", 17027540, 17027570, "track1_rep1", "mean", 10, FALSE)$results(), 
+    c(0, 0.8, 2.2)
+  )
 })
 
 test_that("Methods with a track parameter work with default missing value", {

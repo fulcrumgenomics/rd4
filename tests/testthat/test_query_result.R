@@ -10,7 +10,7 @@ test_that("source() returns the correct data path", {
 
 test_that("track() works when no track was provided", {
   expect_equal(result_example2$track(), NA)
-  expect_equal(source_multitrack$query("chr3", 37011630, 37011640, NA), NA)
+  expect_equal(source_multitrack$query("chr3", 37011630, 37011640, NA)$track(), NA)
 })
 
 test_that("track() works when there are multiple tracks", {
@@ -21,4 +21,6 @@ test_that("bin_size() returns NA if not resampled", {
   expect_equal(result_example2$bin_size(), NA)
 })
 
-test_that("bin_size() is set if resampled", {expect_true(FALSE)})
+test_that("bin_size() is set if resampled", {
+  expect_equal(source_multitrack$resample("chr1", 17027540, 17027570, NA, "mean", 10, FALSE)$bin_size(), 10)
+})

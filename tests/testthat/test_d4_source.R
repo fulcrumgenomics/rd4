@@ -1,3 +1,8 @@
+test_that("Methods raise error for nonexistent path", {
+  # Note: helpful panic message from child thread is printed, but cannot be captured here to test its contents.
+  expect_error(D4Source$new("nonexistent_path")$get_chroms())
+})
+
 test_that("get_source() returns the original data path", {
   expect_equal(source_example1$get_source(), testthat::test_path("testdata", "example1.d4"))
 })
@@ -43,32 +48,26 @@ test_that("get_tracks() works for a D4 file with multiple labeled tracks", {
 })
 
 test_that("query() raises error for nonexistent track name", {
-  expect_error(source_example1$query("chr7", 10, 20, "nonexistent_track"), "Track does not exist: nonexistent_track")
+  # Note: helpful panic message from child thread is printed, but cannot be captured here to test its contents.
+  expect_error(source_example1$query("chr7", 10, 20, "nonexistent_track"))
 })
 
 test_that("query() raises error for nonexistent contig name", {
-  expect_error(source_example1$query("nonexistent_contig", 10, 20, NA), "Contig does not exist: nonexistent_contig")
+  # Note: helpful panic message from child thread is printed, but cannot be captured here to test its contents.
+  expect_error(source_example1$query("nonexistent_contig", 10, 20, NA))
 })
 
 test_that("query() raises error for invalid coordinates", {
-  expect_error(source_example1$query("chr1", -1, 10, NA), "Invalid coordinates: -1-10")
-  expect_error(source_example1$query("chr7", 100, 999999999, NA), "Invalid coordinates: 100-999999999")
-  expect_error(source_example1$query("chr7", 100, 99, NA), "Invalid coordinates: 100-99")
+  # Note: helpful panic message from child thread is printed, but cannot be captured here to test its contents.
+  expect_error(source_example1$query("chr7", 100, 99, NA))
 })
 
-test_that("query() raises error for missing track name when there are multiple tracks", {
-  expect_error(
-    source_multitrack$query("chr1", 43349436, 43349440, NA), 
-    "Track name required for D4 file with multiple tracks"
-  )
+test_that("query() returns an empty result for a 0-length region", {
+  expect_equal(source_example1$query("chr7", 10, 10, NA)$results(), numeric())
 })
 
 test_that("query() works for a region with no data", {
   expect_equal(source_example1$query("chr7", 10, 20, NA)$results(), rep(0, 10))
-})
-
-test_that("query() returns an empty vector for a region of length 0", {
-  expect_equal(source_example1$query("chr7", 10, 10, NA)$results(), c())
 })
 
 test_that("query() works for a region with some empty positions and some data", {
@@ -106,7 +105,7 @@ test_that("median() returns the same value as independently taking the median of
 })
 
 test_that("median() returns 0 for a region with no data", {
-  expect_equal(source_multitrack$mean("chr3", 1000000, 2000000, "track2"), 0)
+  expect_equal(source_multitrack$median("chr3", 1000000, 2000000, "track2"), 0)
 })
 
 test_that("median() works for a region with some empty positions and some data", {
@@ -131,10 +130,8 @@ test_that("median() works for a region with multiple non-empty tracks", {
 # 
 # test_that("histogram() works for a region with multiple non-empty tracks", {expect_true(FALSE)})
 
-test_that("A Histogram over a full range works", {
-  test_file <- testthat::test_path("testdata", "test.d4")
-  file <- D4Source$new(test_file)
-  hist <- file$histogram("chr1", 0, 1000, NA, min=0, max=NA)
+test_that("A histogram over a full range works", {
+  hist <- source_example3$histogram("chr1", 0, 1000, NA, min=0, max=NA)
   expect_equal(hist$mean(), 1.4)
   expect_equal(hist$median(), 0.0)
   expect_equal(hist$percentile(99.79), 100)
@@ -144,7 +141,7 @@ test_that("A Histogram over a full range works", {
   expect_equal(hist$std(), 32.52752680423152)
 })
 
-test_that("A Histogram over a partial range works", {
+test_that("A histogram over a partial range works", {
   hist <- source_example3$histogram("chr1", 0, 1000, NA, min=99, max=200)
   expect_equal(hist$mean(), 0.2)
   expect_equal(hist$median(), 99)
@@ -153,12 +150,6 @@ test_that("A Histogram over a partial range works", {
   expect_equal(hist$value_count(100), 2)
   expect_equal(hist$value_fraction(100), 0.002)
   expect_equal(hist$std(), 4.467661580737736)
-})
-
-test_that("percentile() raises error for invalid percentile value", {
-  expect_error(source_multitrack$percentile("chr3", 1000000, 2000000, "track2", -1), "Percentile must be in (0,1]")
-  expect_error(source_multitrack$percentile("chr3", 1000000, 2000000, "track2", 0), "Percentile must be in (0,1]")
-  expect_error(source_multitrack$percentile("chr3", 1000000, 2000000, "track2", 1.1), "Percentile must be in (0,1]")
 })
 
 test_that("percentile() works for a region with no data", {
@@ -185,6 +176,10 @@ test_that("resample() works for a region with no data", {
 
 test_that("resample() works for a region with some empty positions and some data and median method", {
   expect_equal(source_example1$resample("chr1", 17027540, 17027570, NA, "median", 10, FALSE)$results(), c(0, 1, 2))
+})
+
+test_that("resample() works with default bin size (argument omitted)", {
+  expect_equal(source_example1$resample("chr1", 17027540, 17027570, NA, "median")$results(), c(1))
 })
 
 test_that("resample() works for a region with multiple non-empty tracks and mean method", {

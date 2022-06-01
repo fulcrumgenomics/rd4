@@ -109,11 +109,11 @@ test_that("median() returns 0 for a region with no data", {
 })
 
 test_that("median() works for a region with some empty positions and some data", {
-  expect_equal(source_example2$median("chr3", 37011624, 37011640, NA), 1)
+  expect_equal(source_example2$median("chr3", 37011625, 37011640, NA), 2)
 })
 
 test_that("median() works for a region with multiple non-empty tracks", {
-  expect_equal(source_multitrack$median("chr3", 37011624, 37011640, "track2"), 1)
+  expect_equal(source_multitrack$median("chr3", 37011625, 37011640, "track2"), 2)
 })
 
 # test_that("histogram() raises error for invalid bucket limits", {expect_true(FALSE)})
@@ -157,7 +157,7 @@ test_that("percentile() works for a region with no data", {
 })
 
 test_that("percentile() works for a region with some empty positions and some data", {
-  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 10), 0)
+  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 1), 0)
   expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 50), 2)
   expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 90), 3)
   expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 100), 3)

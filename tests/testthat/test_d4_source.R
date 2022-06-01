@@ -80,8 +80,8 @@ test_that("query() works for a region with multiple non-empty tracks", {
 
 test_that("mean() returns the same value as independently taking the mean of a query result", {
   expect_equal(
-    source_example2$mean("chr3", 37000000, 38000000, NA),
-    mean(source_example2$query("chr3", 37000000, 38000000, NA)$results()),
+    source_example2$mean("chr3", 0, 50000000, NA),
+    mean(source_example2$query("chr3", 0, 50000000, NA)$results()),
   )
 })
 
@@ -99,8 +99,8 @@ test_that("mean() works for a region with multiple non-empty tracks", {
 
 test_that("median() returns the same value as independently taking the median of a query result", {
   expect_equal(
-    source_example2$median("chr3", 37000000, 38000000, NA),
-    median(source_example2$query("chr3", 37000000, 38000000, NA)$results()),
+    source_example2$median("chr3", 0, 50000000, NA),
+    median(source_example2$query("chr3", 0, 50000000, NA)$results()),
   )
 })
 
@@ -153,21 +153,31 @@ test_that("A histogram over a partial range works", {
 })
 
 test_that("percentile() works for a region with no data", {
-  expect_equal(source_multitrack$percentile("chr3", 1000000, 2000000, "track2", 1), 0)
+  expect_equal(source_multitrack$percentile("chr3", 1000000, 2000000, "track2", 100), 0)
 })
 
 test_that("percentile() works for a region with some empty positions and some data", {
-  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 0.1), 0)
-  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 0.5), 2)
-  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 0.9), 3)
-  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 1), 3)
+  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 10), 0)
+  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 50), 2)
+  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 90), 3)
+  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 100), 3)
 })
 
-test_that("percentile() returns the same value as median() for percentile=0.5", {
+test_that("percentile() returns the same value as median() for percentile == 50", {
   expect_equal(
-    source_multitrack$percentile("chr3", 37000000, 38000000, "track2", 0.5), 
+    source_multitrack$percentile("chr3", 37000000, 38000000, "track2", 50), 
     source_multitrack$median("chr3", 37000000, 38000000, "track2")
   )
+})
+
+test_that("percentile() returns 0 for percentile <= 0", {
+  expect_equal(source_multitrack$percentile("chr3", 37011640, 37011646, "track2", 0), 0)
+  expect_equal(source_multitrack$percentile("chr3", 37011640, 37011646, "track2", -1), 0)
+})
+
+test_that("percentile() returns the max for percentile >= 100", {
+  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 100), 3)
+  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 101), 3)
 })
 
 test_that("resample() works for a region with no data", {

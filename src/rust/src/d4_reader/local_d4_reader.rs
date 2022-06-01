@@ -128,16 +128,11 @@ impl LocalD4Reader {
         let mut output = vec![];
         // Inner loop is _percentile_impl in the python code
         for query in regions {
-            let hist = &self.histogram(&[query.clone()], 0, HIGH_DEPTH as i32, track)[0];
-            let above = hist.above as f64;
-            let below = hist.below as f64;
-            let (_chr, begin, end) = query.into();
-            let total = (end - begin) as f64;
-            if (percentile < (below / total) * 100.0)
-                || (100.0 - ((above / total) * 100.0) < percentile)
-            {
+            if percentile <= 0.0 {
+                output.push(0.0)
+            } else {
                 let data = self.query_track(query, track);
-                let mut low = data
+                let min = data
                     .results()
                     .iter()
                     .copied()
@@ -145,35 +140,48 @@ impl LocalD4Reader {
                     .min()
                     .unwrap_or(OrderedFloat(0.0))
                     .into_inner();
-                let mut high = data
+                let max = data
                     .results()
                     .iter()
                     .copied()
                     .map(OrderedFloat)
                     .max()
                     .unwrap_or(OrderedFloat(0.0))
-                    .into_inner()
-                    + 1.0;
-                while high - low > 1.0 {
-                    let mid = (high + low) % 2.0;
-                    let p = data.results().iter().filter(|depth| **depth < mid).sum::<f64>()
-                        * 100.0
-                        / total;
-                    if p < percentile {
-                        low = mid;
-                    } else {
-                        high = mid;
+                    .into_inner();
+                if min == max || percentile >= 100.0 {
+                    output.push(max);
+                } else {
+                    let hist = &self.histogram(&[query.clone()], 0, HIGH_DEPTH as i32, track)[0];
+                    let total = hist.total_count() as f64;
+                    let above = hist.above as f64;
+                    let below = hist.below as f64;
+                    if (percentile < (below / total) * 100.0)
+                        || (100.0 - ((above / total) * 100.0) < percentile) // Percentile lies outside the histogram
+                    {
+                        let mut low = min.clone();
+                        let mut high = max.clone() + 1.0;
+                        while high - low > 1.0 {
+                            let mid = (high + low) % 2.0;
+                            let p = data.results().iter().filter(|depth| **depth < mid).sum::<f64>()
+                                * 100.0
+                                / total;
+                            if p < percentile {
+                                low = mid;
+                            } else {
+                                high = mid;
+                            }
+                        }
+                        output.push(low);
+                    } else { // Percentile lies inside the histogram
+                        let mut value = hist.first_value;
+                        for prefix_sum in hist.prefix_sum.iter().skip(1) {
+                            if (*prefix_sum as f64 / total as f64) * 100.0 > percentile {
+                                output.push(value as f64);
+                                break;
+                            }
+                            value += 1;
+                        }
                     }
-                }
-                output.push(low);
-            } else {
-                let mut value = hist.first_value;
-                for prefix_sum in hist.prefix_sum.iter().skip(1) {
-                    if (*prefix_sum as f64 / total as f64) * 100.0 > percentile {
-                        output.push(value as f64);
-                        break;
-                    }
-                    value += 1;
                 }
             }
         }

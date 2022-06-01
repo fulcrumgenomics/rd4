@@ -93,7 +93,14 @@ impl D4Source {
     ///
     /// @export
     fn query(&self, chr: String, left: u32, right: u32, track: Option<String>) -> QueryResult {
-        self.inner.query(chr, left, right, track)
+        let result = self.inner.query(chr, left, right, track);
+        if left != right && result.results().len() < 1 {
+            panic!(
+                "Query result is empty. Are your contig and coordinates valid? Got {:?}:{:?}-{:?}.", 
+                result.query().chr(), result.query().left(), result.query().right()
+            )
+        }
+        result
     }
 
     /// Compute the mean depth of the given region.

@@ -1,5 +1,6 @@
 //! Implementation of [`D4Reader`] for files on a filesystem.
 use std::any::Any;
+use std::panic;
 
 use d4::stab::SecondaryTablePartReader;
 use d4::task::{Task, TaskContext};
@@ -109,10 +110,17 @@ impl LocalD4Reader {
     fn open(&self, track: Option<&str>) -> d4::D4TrackReader {
         // TODO: D4TrackReader::open splits the path on `:` and takes anything to the right as a track specifier
         // There should be a way to create a reader like remote with the optional track name
-        let track_spec =
-            if let Some(track) = track { [&self.path, track].join(":") } else { self.path.clone() };
-        d4::D4TrackReader::open(&track_spec)
-            .unwrap_or_else(|_| panic!("Failed to create local reader for: {:?}", self.path))
+        
+        let try_path = d4::D4TrackReader::open(&self.path)
+            .unwrap_or_else(|_| panic!("Could not create local reader for path: {:?}", self.path));
+        
+        if let Some(track) = track {
+            let track_spec = [&self.path, track].join(":");
+            d4::D4TrackReader::open(&track_spec)
+                .unwrap_or_else(|_| panic!("Failed to open track {:?} for path: {:?}", track, self.path))
+        } else {
+            try_path
+        }
     }
 
     /// Compute the percentile value for each input region

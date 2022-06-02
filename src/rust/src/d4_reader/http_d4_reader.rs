@@ -4,7 +4,7 @@ use std::any::Any;
 use d4::ssio::http::HttpReader;
 use d4::Chrom;
 
-use crate::{d4_reader::D4Reader, Query, QueryResult};
+use crate::{d4_reader::D4Reader, QueryEnv, QueryResultEnv};
 
 use super::HIGH_DEPTH;
 
@@ -35,7 +35,7 @@ impl D4Reader for HttpD4Reader {
         self.source.clone()
     }
 
-    fn query_track(&self, query: &Query, track: Option<&str>) -> QueryResult {
+    fn query_track(&self, query: &QueryEnv, track: Option<&str>) -> QueryResultEnv {
         let mut reader = self.open(track);
         let denominator = self.get_demoninator();
         let result: Vec<f64> = reader
@@ -49,7 +49,7 @@ impl D4Reader for HttpD4Reader {
             .map(|res| if let Ok((_, value)) = res { value as f64 / denominator } else { 0.0 })
             .collect();
 
-        QueryResult::new(
+        QueryResultEnv::new(
             query.clone(),
             self.source.clone(),
             track.map(|x| x.to_owned()),
@@ -62,7 +62,7 @@ impl D4Reader for HttpD4Reader {
         self
     }
 
-    fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64> {
+    fn mean(&self, regions: &[QueryEnv], track: Option<&str>) -> Vec<f64> {
         let mut reader = self.open(track);
         let mut output = Vec::with_capacity(regions.len());
         let index =

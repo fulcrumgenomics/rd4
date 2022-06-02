@@ -63,25 +63,25 @@ test_that("query() raises error for invalid coordinates", {
 })
 
 test_that("query() returns an empty result for a 0-length region", {
-  expect_equal(results(query(source_example1, "chr7", 10, 10)), numeric())
+  expect_equal(query(source_example1, "chr7", 10, 10)$results, numeric())
 })
 
 test_that("query() works for a region with no data", {
-  expect_equal(results(query(source_example1, "chr7", 10, 20)), rep(0, 10))
+  expect_equal(query(source_example1, "chr7", 10, 20)$results, rep(0, 10))
 })
 
 test_that("query() works for a region with some empty positions and some data", {
-  expect_equal(results(query(source_example1, "chr1", 43349436, 43349440)), c(2, 1, 0, 0))
+  expect_equal(query(source_example1, "chr1", 43349436, 43349440)$results, c(2, 1, 0, 0))
 })
 
 test_that("query() works for a region with multiple non-empty tracks", {
-  expect_equal(results(query(source_multitrack, "chr1", 43349436, 43349440, "track1_rep2")), c(2, 1, 0, 0))
+  expect_equal(query(source_multitrack, "chr1", 43349436, 43349440, "track1_rep2")$results, c(2, 1, 0, 0))
 })
 
 test_that("mean() returns the same value as independently taking the mean of a query result", {
   expect_equal(
     mean(source_example2, "chr3", 0, 50000000),
-    mean(results(query(source_example2, "chr3", 0, 50000000))),
+    mean(query(source_example2, "chr3", 0, 50000000)$results),
   )
 })
 
@@ -100,7 +100,7 @@ test_that("mean() works for a region with multiple non-empty tracks", {
 test_that("median() returns the same value as independently taking the median of a query result", {
   expect_equal(
     median(source_example2, "chr3", 0, 50000000),
-    median(results(query(source_example2, "chr3", 0, 50000000))),
+    median(query(source_example2, "chr3", 0, 50000000)$results)
   )
 })
 
@@ -115,20 +115,6 @@ test_that("median() works for a region with some empty positions and some data",
 test_that("median() works for a region with multiple non-empty tracks", {
   expect_equal(median(source_multitrack, "chr3", 37011625, 37011640, "track2"), 2)
 })
-
-# test_that("histogram() raises error for invalid bucket limits", {expect_true(FALSE)})
-# 
-# test_that("histogram() works with default min and max bucket", {expect_true(FALSE)})
-# 
-# test_that("histogram() returns entire chromosome when coordinates are omitted: chromosome with data", {expect_true(FALSE)})
-# 
-# test_that("histogram() returns entire chromosome when coordinates are omitted: chromosome with no data", {expect_true(FALSE)})
-# 
-# test_that("histogram() works for a region with no data", {expect_true(FALSE)})
-# 
-# test_that("histogram() works for a region with some empty positions and some data", {expect_true(FALSE)})
-# 
-# test_that("histogram() works for a region with multiple non-empty tracks", {expect_true(FALSE)})
 
 test_that("A histogram over a full range works", {
   hist <- source_example3$histogram("chr1", 0, 1000, NA, min=0, max=NA)
@@ -153,48 +139,48 @@ test_that("A histogram over a partial range works", {
 })
 
 test_that("percentile() works for a region with no data", {
-  expect_equal(percentile(source_multitrack, "chr3", 1000000, 2000000, "track2", 100), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 1000000, 2000000, 100, "track2"), 0)
 })
 
 test_that("percentile() works for a region with some empty positions and some data", {
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 1), 0)
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 50), 2)
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 90), 3)
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 100), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 1, "track2"), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 50, "track2"), 2)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 90, "track2"), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 100, "track2"), 3)
 })
 
 test_that("percentile() returns the same value as median() for percentile == 50", {
   expect_equal(
-    percentile(source_multitrack, "chr3", 37000000, 38000000, "track2", 50), 
+    percentile(source_multitrack, "chr3", 37000000, 38000000, 50, "track2"), 
     median(source_multitrack, "chr3", 37000000, 38000000, "track2")
   )
 })
 
 test_that("percentile() returns 0 for percentile <= 0", {
-  expect_equal(percentile(source_multitrack, "chr3", 37011640, 37011646, "track2", 0), 0)
-  expect_equal(percentile(source_multitrack, "chr3", 37011640, 37011646, "track2", -1), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 37011640, 37011646, 0, "track2"), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 37011640, 37011646, -1, "track2"), 0)
 })
 
 test_that("percentile() returns the max for percentile >= 100", {
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 100), 3)
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 101), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 100, "track2"), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 101, "track2"), 3)
 })
 
 test_that("resample() works for a region with no data", {
-  expect_equal(results(resample(source_example1, "chr1", 1000000, 2000000, "median", 1000, FALSE)), rep(0, 1000))
+  expect_equal(resample(source_example1, "chr1", 1000000, 2000000, "median", 1000, FALSE)$results, rep(0, 1000))
 })
 
 test_that("resample() works for a region with some empty positions and some data and median method", {
-  expect_equal(results(resample(source_example1, "chr1", 17027540, 17027570, "median", 10, FALSE)), c(0, 1, 2))
+  expect_equal(resample(source_example1, "chr1", 17027540, 17027570, "median", 10, FALSE)$results, c(0, 1, 2))
 })
 
 test_that("resample() works with default bin size (argument omitted)", {
-  expect_equal(results(resample(source_example1, "chr1", 17027540, 17027570, "median")), c(1))
+  expect_equal(resample(source_example1, "chr1", 17027540, 17027570, "median")$results, c(1))
 })
 
 test_that("resample() works for a region with multiple non-empty tracks and mean method", {
   expect_equal(
-    results(resample(source_multitrack, "chr1", 17027540, 17027570, "track1_rep1", "mean", 10, FALSE)), 
+    resample(source_multitrack, "chr1", 17027540, 17027570, "mean", 10, FALSE, "track1_rep1")$results, 
     c(0, 0.8, 2.2)
   )
 })

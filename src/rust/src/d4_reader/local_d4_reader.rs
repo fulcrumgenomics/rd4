@@ -8,8 +8,8 @@ use d4::Chrom;
 use d4::{ptab::DecodeResult, task::Mean};
 use ordered_float::OrderedFloat;
 
-use crate::Histogram;
-use crate::{d4_reader::D4Reader, Query, QueryResult};
+use crate::HistogramEnv;
+use crate::{d4_reader::D4Reader, QueryEnv, QueryResultEnv};
 
 use super::HIGH_DEPTH;
 
@@ -41,7 +41,7 @@ impl D4Reader for LocalD4Reader {
         self.path.clone()
     }
 
-    fn query_track(&self, query: &Query, track: Option<&str>) -> QueryResult {
+    fn query_track(&self, query: &QueryEnv, track: Option<&str>) -> QueryResultEnv {
         let mut reader = self.open(track);
         let partition =
             reader.split(None).unwrap_or_else(|_| panic!("Failed to partition {:?}", self.path));
@@ -67,7 +67,7 @@ impl D4Reader for LocalD4Reader {
             })
             .collect();
 
-        QueryResult::new(
+        QueryResultEnv::new(
             query.clone(),
             self.path.clone(),
             track.map(|x| x.to_owned()),
@@ -76,7 +76,7 @@ impl D4Reader for LocalD4Reader {
         )
     }
 
-    fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64> {
+    fn mean(&self, regions: &[QueryEnv], track: Option<&str>) -> Vec<f64> {
         let mut reader = self.open(track);
         let result = Mean::create_task(
             &mut reader,
@@ -124,7 +124,7 @@ impl LocalD4Reader {
     }
 
     /// Compute the percentile value for each input region
-    pub fn percentile(&self, regions: &[Query], track: Option<&str>, percentile: f64) -> Vec<f64> {
+    pub fn percentile(&self, regions: &[QueryEnv], track: Option<&str>, percentile: f64) -> Vec<f64> {
         let mut output = vec![];
         // Inner loop is _percentile_impl in the python code
         for query in regions {
@@ -198,11 +198,11 @@ impl LocalD4Reader {
     /// - `max` - The exclusive last bucket of this histogram (i.e. a max of 100 will mean the histogram goes up to 99)
     pub fn histogram(
         &self,
-        regions: &[Query],
+        regions: &[QueryEnv],
         min: i32,
         max: i32,
         track: Option<&str>,
-    ) -> Vec<Histogram> {
+    ) -> Vec<HistogramEnv> {
         let mut reader = self.open(track);
         let spec = regions
             .iter()
@@ -218,7 +218,7 @@ impl LocalD4Reader {
             // The result item is the (number of values less than min, an array with count for each value from min..max, then the number of values >= max)
             let (below, hist, above) = item.output;
             let hist: Vec<_> = hist.iter().enumerate().map(|(a, &b)| (a as i32 + min, b)).collect(); // TODO - This differs from the pyd4 api, which does not add `a + min` and just lets the "value" be 0
-            let hist = Histogram::new(hist, *below, *above);
+            let hist = HistogramEnv::new(hist, *below, *above);
             output.push(hist);
         }
         output

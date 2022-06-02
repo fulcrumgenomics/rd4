@@ -2,7 +2,7 @@ use std::{any::Any, fmt::Debug};
 
 use d4::Chrom;
 
-use crate::{Query, QueryResult};
+use crate::{QueryEnv, QueryResultEnv};
 
 pub(crate) mod http_d4_reader;
 pub(crate) mod local_d4_reader;
@@ -50,19 +50,19 @@ pub(crate) trait D4Reader: Debug {
     /// - `track` - the optional track to query, if None, the first track in the source will be queried
     ///
     /// **Note**: This function will change to support queries over multiple tracks at a future time.
-    fn query(&self, chr: String, left: u32, right: u32, track: Option<String>) -> QueryResult {
-        let query = Query::new(chr, left, right);
+    fn query(&self, chr: String, left: u32, right: u32, track: Option<String>) -> QueryResultEnv {
+        let query = QueryEnv::new(chr, left, right);
         self.query_track(&query, track.as_deref())
     }
 
-    /// Query a single track with the given [`Query`].
+    /// Query a single track with the given [`QueryEnv`].
     ///
     /// This method is intended to be used internally by the `query` method when that method
     /// supports queries over multiple tracks at once.
-    fn query_track(&self, query: &Query, track: Option<&str>) -> QueryResult;
+    fn query_track(&self, query: &QueryEnv, track: Option<&str>) -> QueryResultEnv;
 
     /// Compute the mean depth for each region in `regions` for the specified `track`.
-    fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64>;
+    fn mean(&self, regions: &[QueryEnv], track: Option<&str>) -> Vec<f64>;
 
     /// Cast the object implementing this trait to [`Any`] to allow for downcasting.
     fn as_any(&self) -> &dyn Any;

@@ -1,10 +1,10 @@
 test_that("Methods raise error for nonexistent path", {
   # Note: helpful panic message from child thread is printed, but cannot be captured here to test its contents.
-  expect_error(D4Source$new("nonexistent_path")$get_chroms())
+  expect_error(get_chroms(D4Source("nonexistent_path")))
 })
 
 test_that("get_source() returns the original data path", {
-  expect_equal(source_example1$get_source(), testthat::test_path("testdata", "example1.d4"))
+  expect_equal(get_source(source_example1), testthat::test_path("testdata", "example1.d4"))
 })
 
 test_that("get_chroms() returns the full sequence dictionary for files with one or multiple tracks", {
@@ -35,85 +35,85 @@ test_that("get_chroms() returns the full sequence dictionary for files with one 
     list(name="chrY", size=57227415),
     list(name="chrM", size=16569)
   )
-  expect_equal(source_example1$get_chroms(), exp_seq_dict)
-  expect_equal(source_multitrack$get_chroms(), exp_seq_dict)
+  expect_equal(get_chroms(source_example1), exp_seq_dict)
+  expect_equal(get_chroms(source_multitrack), exp_seq_dict)
 })
 
 test_that("get_tracks() works for a D4 file with one track and no track label", {
-  expect_equal(source_example1$get_tracks(), c(""))
+  expect_equal(get_tracks(source_example1), c(""))
 })
 
 test_that("get_tracks() works for a D4 file with multiple labeled tracks", {
-  expect_equal(source_multitrack$get_tracks(), c("track1_rep1", "track1_rep2", "track2"))
+  expect_equal(get_tracks(source_multitrack), c("track1_rep1", "track1_rep2", "track2"))
 })
 
 test_that("query() raises error for nonexistent track name", {
   # Note: helpful panic message from child thread is printed, but cannot be captured here to test its contents.
-  expect_error(source_example1$query("chr7", 10, 20, "nonexistent_track"))
+  expect_error(query(source_example1, "chr7", 10, 20, "nonexistent_track"))
 })
 
 test_that("query() raises error for nonexistent contig name", {
   # Note: helpful panic message from child thread is printed, but cannot be captured here to test its contents.
-  expect_error(source_example1$query("nonexistent_contig", 10, 20, NA))
+  expect_error(query(source_example1, "nonexistent_contig", 10, 20))
 })
 
 test_that("query() raises error for invalid coordinates", {
   # Note: helpful panic message from child thread is printed, but cannot be captured here to test its contents.
-  expect_error(source_example1$query("chr7", 100, 99, NA))
+  expect_error(query(source_example1, "chr7", 100, 99))
 })
 
 test_that("query() returns an empty result for a 0-length region", {
-  expect_equal(source_example1$query("chr7", 10, 10, NA)$results(), numeric())
+  expect_equal(results(query(source_example1, "chr7", 10, 10)), numeric())
 })
 
 test_that("query() works for a region with no data", {
-  expect_equal(source_example1$query("chr7", 10, 20, NA)$results(), rep(0, 10))
+  expect_equal(results(query(source_example1, "chr7", 10, 20)), rep(0, 10))
 })
 
 test_that("query() works for a region with some empty positions and some data", {
-  expect_equal(source_example1$query("chr1", 43349436, 43349440, NA)$results(), c(2, 1, 0, 0))
+  expect_equal(results(query(source_example1, "chr1", 43349436, 43349440)), c(2, 1, 0, 0))
 })
 
 test_that("query() works for a region with multiple non-empty tracks", {
-  expect_equal(source_multitrack$query("chr1", 43349436, 43349440, "track1_rep2")$results(), c(2, 1, 0, 0))
+  expect_equal(results(query(source_multitrack, "chr1", 43349436, 43349440, "track1_rep2")), c(2, 1, 0, 0))
 })
 
 test_that("mean() returns the same value as independently taking the mean of a query result", {
   expect_equal(
-    source_example2$mean("chr3", 0, 50000000, NA),
-    mean(source_example2$query("chr3", 0, 50000000, NA)$results()),
+    mean(source_example2, "chr3", 0, 50000000),
+    mean(results(query(source_example2, "chr3", 0, 50000000))),
   )
 })
 
 test_that("mean() returns 0 for a region with no data", {
-  expect_equal(source_example2$mean("chr3", 1000000, 2000000, NA), 0)
+  expect_equal(mean(source_example2, "chr3", 1000000, 2000000), 0)
 })
 
 test_that("mean() works for a region with some empty positions and some data", {
-  expect_equal(source_example2$mean("chr3", 37011630, 37011646, NA), 2.125)
+  expect_equal(mean(source_example2, "chr3", 37011630, 37011646), 2.125)
 })
 
 test_that("mean() works for a region with multiple non-empty tracks", {
-  expect_equal(source_multitrack$mean("chr3", 37011715, 37011720, "track2"), 20.4)
+  expect_equal(mean(source_multitrack, "chr3", 37011715, 37011720, "track2"), 20.4)
 })
 
 test_that("median() returns the same value as independently taking the median of a query result", {
   expect_equal(
-    source_example2$median("chr3", 0, 50000000, NA),
-    median(source_example2$query("chr3", 0, 50000000, NA)$results()),
+    median(source_example2, "chr3", 0, 50000000),
+    median(results(query(source_example2, "chr3", 0, 50000000))),
   )
 })
 
 test_that("median() returns 0 for a region with no data", {
-  expect_equal(source_multitrack$median("chr3", 1000000, 2000000, "track2"), 0)
+  expect_equal(median(source_multitrack, "chr3", 1000000, 2000000, "track2"), 0)
 })
 
 test_that("median() works for a region with some empty positions and some data", {
-  expect_equal(source_example2$median("chr3", 37011625, 37011640, NA), 2)
+  expect_equal(median(source_example2, "chr3", 37011625, 37011640), 2)
 })
 
 test_that("median() works for a region with multiple non-empty tracks", {
-  expect_equal(source_multitrack$median("chr3", 37011625, 37011640, "track2"), 2)
+  expect_equal(median(source_multitrack, "chr3", 37011625, 37011640, "track2"), 2)
 })
 
 # test_that("histogram() raises error for invalid bucket limits", {expect_true(FALSE)})
@@ -153,63 +153,48 @@ test_that("A histogram over a partial range works", {
 })
 
 test_that("percentile() works for a region with no data", {
-  expect_equal(source_multitrack$percentile("chr3", 1000000, 2000000, "track2", 100), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 1000000, 2000000, "track2", 100), 0)
 })
 
 test_that("percentile() works for a region with some empty positions and some data", {
-  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 1), 0)
-  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 50), 2)
-  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 90), 3)
-  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 100), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 1), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 50), 2)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 90), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 100), 3)
 })
 
 test_that("percentile() returns the same value as median() for percentile == 50", {
   expect_equal(
-    source_multitrack$percentile("chr3", 37000000, 38000000, "track2", 50), 
-    source_multitrack$median("chr3", 37000000, 38000000, "track2")
+    percentile(source_multitrack, "chr3", 37000000, 38000000, "track2", 50), 
+    median(source_multitrack, "chr3", 37000000, 38000000, "track2")
   )
 })
 
 test_that("percentile() returns 0 for percentile <= 0", {
-  expect_equal(source_multitrack$percentile("chr3", 37011640, 37011646, "track2", 0), 0)
-  expect_equal(source_multitrack$percentile("chr3", 37011640, 37011646, "track2", -1), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 37011640, 37011646, "track2", 0), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 37011640, 37011646, "track2", -1), 0)
 })
 
 test_that("percentile() returns the max for percentile >= 100", {
-  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 100), 3)
-  expect_equal(source_multitrack$percentile("chr3", 37011630, 37011646, "track2", 101), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 100), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, "track2", 101), 3)
 })
 
 test_that("resample() works for a region with no data", {
-  expect_equal(source_example1$resample("chr1", 1000000, 2000000, NA, "median", 1000, FALSE)$results(), rep(0, 1000))
+  expect_equal(results(resample(source_example1, "chr1", 1000000, 2000000, "median", 1000, FALSE)), rep(0, 1000))
 })
 
 test_that("resample() works for a region with some empty positions and some data and median method", {
-  expect_equal(source_example1$resample("chr1", 17027540, 17027570, NA, "median", 10, FALSE)$results(), c(0, 1, 2))
+  expect_equal(results(resample(source_example1, "chr1", 17027540, 17027570, "median", 10, FALSE)), c(0, 1, 2))
 })
 
 test_that("resample() works with default bin size (argument omitted)", {
-  expect_equal(source_example1$resample("chr1", 17027540, 17027570, NA, "median")$results(), c(1))
+  expect_equal(results(resample(source_example1, "chr1", 17027540, 17027570, "median")), c(1))
 })
 
 test_that("resample() works for a region with multiple non-empty tracks and mean method", {
   expect_equal(
-    source_multitrack$resample("chr1", 17027540, 17027570, "track1_rep1", "mean", 10, FALSE)$results(), 
+    results(resample(source_multitrack, "chr1", 17027540, 17027570, "track1_rep1", "mean", 10, FALSE)), 
     c(0, 0.8, 2.2)
   )
-})
-
-test_that("Methods with a track parameter work with default missing value", {
-  expect_equal(source_example1$query("chr1", 43349436, 43349440)$results(), c(2, 1, 0, 0))
-  expect_equal(source_multitrack$query("chr1", 43349436, 43349440)$results(), c(2, 1, 0, 0))
-  expect_equal(source_example2$mean("chr3", 37011630, 37011646), 2.125)
-  expect_true(FALSE) # mean() multitrack
-  expect_true(FALSE) # median() single track
-  expect_true(FALSE) # median() multitrack
-  # expect_true(FALSE) # histogram() single track
-  # expect_true(FALSE) # histogram() multitrack
-  expect_true(FALSE) # percentile() single track
-  expect_true(FALSE) # percentile() multitrack
-  expect_true(FALSE) # resample() single track
-  expect_true(FALSE) # resample() multitrack
 })

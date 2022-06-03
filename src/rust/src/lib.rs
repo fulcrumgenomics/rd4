@@ -698,6 +698,15 @@ mod test {
 
             assert_eq!(file_median, 2.0);
             assert_eq!(hist_median, 2);
+
+            // Check the value from a real file too
+            let file = D4SourceEnv::new("../../tests/testthat/testdata/example2.d4");
+            let file_median = file.median(String::from("chr3"), 0, 5000000, None);
+            let hist = file.histogram(String::from("chr3"), 0, 5000000, None, 0, r!(i32::na()));
+            let hist_median = hist.median();
+
+            assert_eq!(file_median, 0.0);
+            assert_eq!(hist_median, 0);
         }
     }
 }

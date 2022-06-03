@@ -690,9 +690,14 @@ mod test {
             ];
             let data = create_d4_file_with_values(tempdir.path(), &values);
             let file = D4SourceEnv::new(data.to_str().unwrap());
+
+            let file_median = file.median(String::from("chr1"), 0, 11, None);
+
             let hist = file.histogram(String::from("chr1"), 0, 11, None, 0, r!(i32::na()));
-            let median = hist.median();
-            assert_eq!(median, 2);
+            let hist_median = hist.median();
+
+            assert_eq!(file_median, 2.0);
+            assert_eq!(hist_median, 2);
         }
     }
 }

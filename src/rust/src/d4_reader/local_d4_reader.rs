@@ -217,6 +217,7 @@ impl LocalD4Reader {
         for item in &result {
             // The result item is the (number of values less than min, an array with count for each value from min..max, then the number of values >= max)
             let (below, hist, above) = item.output;
+            panic!("\nhist first counts: 0:{:?}, 1:{:?}, 2:{:?}, 3:{:?}", hist[0], hist[1], hist[2], hist[3]);
             let hist: Vec<_> = hist.iter().enumerate().map(|(a, &b)| (a as i32 + min, b)).collect(); // TODO - This differs from the pyd4 api, which does not add `a + min` and just lets the "value" be 0
             let hist = HistogramEnv::new(hist, *below, *above);
             output.push(hist);

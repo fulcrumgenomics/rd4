@@ -566,11 +566,14 @@ mod test {
     use extendr_api::prelude::*;
     use tempfile::TempDir;
 
-    use crate::{D4SourceEnv, QueryEnv};
+    use crate::D4SourceEnv;
 
     fn create_d4_file<P: AsRef<Path>>(dir: P) -> PathBuf {
         let values = vec![(10, 100), (15, 200), (20, 100), (50, 1000)];
+        create_d4_file_with_values(dir, &values)
+    }
 
+    fn create_d4_file_with_values<P: AsRef<Path>>(dir: P, values: &[(usize, i32)]) -> PathBuf {
         let filename = dir.as_ref().join("test.d4");
         let mut builder = D4FileBuilder::new(&filename);
         builder.set_dictionary(make_dictionary(None, None).unwrap());
@@ -583,8 +586,8 @@ mod test {
         let (mut primary_table, mut secondary_table) = partitions.into_iter().next().unwrap();
         let mut p_encoder = primary_table.make_encoder();
         for (pos, depth) in values {
-            if !p_encoder.encode(pos, depth) {
-                secondary_table.encode(pos as u32, depth).unwrap();
+            if !p_encoder.encode(*pos, *depth) {
+                secondary_table.encode(*pos as u32, *depth).unwrap();
             }
         }
         secondary_table.flush().unwrap();
@@ -665,6 +668,45 @@ mod test {
             assert_eq!(hist.value_count(100), 2);
             assert_eq!(hist.value_fraction(100), 0.002);
             assert_eq!(hist.std(), 32.527_526_804_231_52);
+        }
+    }
+
+    #[test]
+    fn test_median_with_zeros() {
+        test! {
+            let tempdir = TempDir::new().unwrap();
+            let values = vec![
+                (0, 0),
+                (1, 0),
+                (2, 0),
+                (3, 0),
+                (4, 1),
+                (5, 2),
+                (6, 3),
+                (7, 4),
+                (8, 5),
+                (9, 6),
+                (10, 7),
+            ];
+            let data = create_d4_file_with_values(tempdir.path(), &values);
+            let file = D4SourceEnv::new(data.to_str().unwrap());
+
+            let file_median = file.median(String::from("chr1"), 0, 11, None);
+
+            let hist = file.histogram(String::from("chr1"), 0, 11, None, 0, r!(i32::na()));
+            let hist_median = hist.median();
+
+            assert_eq!(file_median, 2.0);
+            assert_eq!(hist_median, 2);
+
+            // Check the value from a real file too
+            let file = D4SourceEnv::new("../../tests/testthat/testdata/example2.d4");
+            let file_median = file.median(String::from("chr3"), 0, 5000000, None);
+            let hist = file.histogram(String::from("chr3"), 0, 5000000, None, 0, r!(i32::na()));
+            let hist_median = hist.median();
+
+            assert_eq!(file_median, 0.0);
+            assert_eq!(hist_median, 0);
         }
     }
 }

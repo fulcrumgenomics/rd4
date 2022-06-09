@@ -709,7 +709,6 @@ mod test {
             assert_eq!(file_median, 2.0);
             assert_eq!(hist_median, 2);
 
-
         }
     }
 }

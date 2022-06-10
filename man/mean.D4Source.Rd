@@ -4,7 +4,7 @@
 \alias{mean.D4Source}
 \title{Returns the mean data value over the given region}
 \usage{
-\method{mean}{D4Source}(d4source, chr, start, end, track = NA)
+\method{mean}{D4Source}(d4source, chr, start, end, ..., track = NA)
 }
 \arguments{
 \item{d4source}{\code{D4Source} object}

@@ -4,7 +4,7 @@
 \alias{median.D4Source}
 \title{Returns the median data value over the given region}
 \usage{
-\method{median}{D4Source}(d4source, chr, start, end, track = NA)
+median.D4Source(d4source, chr, start, end, ..., track = NA)
 }
 \arguments{
 \item{d4source}{\code{D4Source} object}

@@ -4,7 +4,7 @@
 \alias{percentile.D4Source}
 \title{Returns the data value at the given percentile for the given region}
 \usage{
-\method{percentile}{D4Source}(d4source, chr, start, end, percentile, track = NA)
+\method{percentile}{D4Source}(d4source, chr, start, end, percentile, ..., track = NA)
 }
 \arguments{
 \item{d4source}{\code{D4Source} object}

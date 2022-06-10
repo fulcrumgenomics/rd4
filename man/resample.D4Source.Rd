@@ -10,6 +10,7 @@
   start,
   end,
   method,
+  ...,
   bin_size = 1000,
   allow_bin_size_adjustment = TRUE,
   track = NA

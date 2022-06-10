@@ -71,11 +71,71 @@ test_that("query() works for a region with no data", {
 })
 
 test_that("query() works for a region with some empty positions and some data", {
-  expect_equal(query(source_example1, "chr1", 43349436, 43349440)$results, c(2, 1, 0, 0))
+  query <- query(source_example1, "chr1", 43349436, 43349440)
+  expect_equal(query$query, list(chr="chr1", start=43349436, end=43349440, minus_strand=FALSE))
+  expect_equal(query$results, c(2, 1, 0, 0))
+})
+
+test_that("query() works for a minus strand region with some empty positions and some data", {
+  query <- query(source_example1, "chr1", 43349436, 43349440, minus_strand=TRUE)
+  expect_equal(query$query, list(chr="chr1", start=43349436, end=43349440, minus_strand=TRUE))
+  expect_equal(query$results, c(0, 0, 1, 2))
 })
 
 test_that("query() works for a region with multiple non-empty tracks", {
-  expect_equal(query(source_multitrack, "chr1", 43349436, 43349440, "track1_rep2")$results, c(2, 1, 0, 0))
+  expect_equal(query(source_multitrack, "chr1", 43349436, 43349440, track = "track1_rep2")$results, c(2, 1, 0, 0))
+})
+
+test_that("update_query_results() works for a GRanges with several test intervals", {
+  # Test cases included:
+  #   - A region with no data
+  #   - A plus strand region with some empty positions and some data
+  #   - A region with some empty positions and some data, and no strand
+  #   - A minus strand region with some empty positions and some data
+  
+  
+  granges <- GRanges(
+    seqnames=c("chr7", "chr1", "chr1", "chr1"), 
+    ranges=IRanges(
+      start=c(11, 43349437, 43349437, 43349437), 
+      end=c(20, 43349440, 43349440, 43349440)
+    ), 
+    strand=c("+", "+", "*", "-")
+  )
+  granges_updated <- update_query_results(source_example1, granges)
+  
+  expect_true(
+    identical(
+      sapply(mcols(granges_updated)$query_results, function(x) x$results), 
+      list(
+        rep(0, 10), 
+        c(2, 1, 0, 0), 
+        c(2, 1, 0, 0), 
+        c(0, 0, 1, 2)
+      )
+    )
+  )
+  
+  expect_true(
+    identical(
+      lapply(mcols(granges_updated)$query_results, function(x) x$query), 
+      list(
+        list(chr="chr7", start=10, end=20, minus_strand=FALSE),
+        list(chr="chr1", start=43349436, end=43349440, minus_strand=FALSE),
+        list(chr="chr1", start=43349436, end=43349440, minus_strand=FALSE),
+        list(chr="chr1", start=43349436, end=43349440, minus_strand=TRUE)
+      )
+    )
+  )
+  
+})
+
+test_that("update_query_results() works for a region with multiple non-empty tracks", {
+  granges <- GRanges(seqnames="chr1", ranges=IRanges(start=43349437, end=43349440), strand="+")
+  granges_updated <- update_query_results(source_multitrack, granges, track="track1_rep2")
+  metadata <- mcols(granges_updated)$query_results_track1_rep2[[1]]
+  expect_equal(metadata$results, c(2, 1, 0, 0))
+  expect_equal(metadata$track, "track1_rep2")
 })
 
 test_that("mean() returns the same value as independently taking the mean of a query result", {
@@ -94,7 +154,19 @@ test_that("mean() works for a region with some empty positions and some data", {
 })
 
 test_that("mean() works for a region with multiple non-empty tracks", {
-  expect_equal(mean(source_multitrack, "chr3", 37011715, 37011720, "track2"), 20.4)
+  expect_equal(mean(source_multitrack, "chr3", 37011715, 37011720, track = "track2"), 20.4)
+})
+
+test_that("update_mean() works for a Granges with several test intervals", {
+  granges <- GRanges(seqnames="chr3", ranges=IRanges(start=c(37011631, 1000000), end=c(37011646, 2000000)))
+  granges_updated <- update_mean(source_example2, granges)
+  expect_true(identical(mcols(granges_updated)$mean, list(2.125,0)))
+})
+
+test_that("update_mean() works for a region with multiple non-empty tracks", {
+  granges <- GRanges(seqnames="chr3", ranges=IRanges(start=c(37011716), end=c(37011720)))
+  granges_updated <- update_mean(source_multitrack, granges, track = "track2")
+  expect_true(identical(mcols(granges_updated)$mean_track2, list(20.4)))
 })
 
 test_that("median() returns the same value as independently taking the median of a query result", {
@@ -105,7 +177,7 @@ test_that("median() returns the same value as independently taking the median of
 })
 
 test_that("median() returns 0 for a region with no data", {
-  expect_equal(median(source_multitrack, "chr3", 1000000, 2000000, "track2"), 0)
+  expect_equal(median(source_multitrack, "chr3", 1000000, 2000000, track = "track2"), 0)
 })
 
 test_that("median() works for a region with some empty positions and some data", {
@@ -113,8 +185,21 @@ test_that("median() works for a region with some empty positions and some data",
 })
 
 test_that("median() works for a region with multiple non-empty tracks", {
-  expect_equal(median(source_multitrack, "chr3", 37011625, 37011640, "track2"), 2)
+  expect_equal(median(source_multitrack, "chr3", 37011625, 37011640, track = "track2"), 2)
 })
+
+test_that("update_median() works for a Granges with several test intervals", {
+  granges <- GRanges(seqnames="chr3", ranges=IRanges(start=c(1000000, 37011626), end=c(2000000, 37011640)))
+  granges_updated <- update_median(source_example2, granges)
+  expect_true(identical(mcols(granges_updated)$median, list(0, 2)))
+})
+
+test_that("update_median() works for a region with multiple non-empty tracks", {
+  granges <- GRanges(seqnames="chr3", ranges=IRanges(start=c(37011626), end=c(37011640)))
+  granges_updated <- update_median(source_multitrack, granges, track = "track2")
+  expect_true(identical(mcols(granges_updated)$median_track2, list(2)))
+})
+
 
 test_that("A histogram over a full range works", {
   hist <- source_example3$histogram("chr1", 0, 1000, NA, min=0, max=NA)
@@ -139,39 +224,63 @@ test_that("A histogram over a partial range works", {
 })
 
 test_that("percentile() works for a region with no data", {
-  expect_equal(percentile(source_multitrack, "chr3", 1000000, 2000000, 100, "track2"), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 1000000, 2000000, 100, track = "track2"), 0)
 })
 
 test_that("percentile() works for a region with some empty positions and some data", {
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 1, "track2"), 0)
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 50, "track2"), 2)
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 90, "track2"), 3)
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 100, "track2"), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 1, track = "track2"), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 50, track = "track2"), 2)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 90, track = "track2"), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 100, track = "track2"), 3)
 })
 
 test_that("percentile() returns the same value as median() for percentile == 50", {
   expect_equal(
-    percentile(source_multitrack, "chr3", 37000000, 38000000, 50, "track2"), 
-    median(source_multitrack, "chr3", 37000000, 38000000, "track2")
+    percentile(source_multitrack, "chr3", 37000000, 38000000, 50, track = "track2"), 
+    median(source_multitrack, "chr3", 37000000, 38000000, track = "track2")
   )
 })
 
 test_that("percentile() returns 0 for percentile <= 0", {
-  expect_equal(percentile(source_multitrack, "chr3", 37011640, 37011646, 0, "track2"), 0)
-  expect_equal(percentile(source_multitrack, "chr3", 37011640, 37011646, -1, "track2"), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 37011640, 37011646, 0, track = "track2"), 0)
+  expect_equal(percentile(source_multitrack, "chr3", 37011640, 37011646, -1, track = "track2"), 0)
 })
 
 test_that("percentile() returns the max for percentile >= 100", {
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 100, "track2"), 3)
-  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 101, "track2"), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 100, track = "track2"), 3)
+  expect_equal(percentile(source_multitrack, "chr3", 37011630, 37011646, 101, track = "track2"), 3)
+})
+
+test_that("update_percentile() works for a Granges with several test intervals", {
+  granges <- GRanges(seqnames="chr3", ranges=IRanges(start=c(1000000, 37011626), end=c(2000000, 37011640)))
+  granges_updated <- update_percentile(source_example2, granges, 50)
+  expect_true(identical(mcols(granges_updated)$percentile_50, list(0, 2)))
+})
+
+test_that("update_percentile() works for a region with multiple non-empty tracks", {
+  granges <- GRanges(seqnames="chr3", ranges=IRanges(start=c(37011626), end=c(37011640)))
+  granges_updated <- update_percentile(source_multitrack, granges, percentile = 50, track = "track2")
+  expect_true(identical(mcols(granges_updated)$percentile_50_track2, list(2)))
+})
+
+test_that("Multiple calls to update Granges metadata behave as expected", {
+  granges <- GRanges(seqnames="chr3", ranges=IRanges(start=c(37011626), end=c(37011640)))
+  granges <- update_percentile(source_multitrack, granges, percentile = 50, track = "track2")
+  granges <- update_percentile(source_multitrack, granges, percentile = 51, track = "track2")
+  granges <- update_median(source_multitrack, granges, track = "track2")
+  expect_true(identical(mcols(granges)$percentile_50_track2, list(2)))
+  expect_true(identical(mcols(granges)$percentile_51_track2, list(2)))
+  expect_true(identical(mcols(granges)$median_track2, list(2)))
 })
 
 test_that("resample() works for a region with no data", {
-  expect_equal(resample(source_example1, "chr1", 1000000, 2000000, "median", 1000, FALSE)$results, rep(0, 1000))
+  expect_equal(resample(source_example1, "chr1", 1000000, 2000000, "median", 
+                        bin_size = 1000, allow_bin_size_adjustment = FALSE)$results, rep(0, 1000))
 })
 
 test_that("resample() works for a region with some empty positions and some data and median method", {
-  expect_equal(resample(source_example1, "chr1", 17027540, 17027570, "median", 10, FALSE)$results, c(0, 1, 2))
+  expect_equal(resample(source_example1, "chr1", 17027540, 17027570, "median", 
+                        bin_size = 10, allow_bin_size_adjustment = FALSE)$results, c(0, 1, 2))
 })
 
 test_that("resample() works with default bin size (argument omitted)", {
@@ -180,7 +289,10 @@ test_that("resample() works with default bin size (argument omitted)", {
 
 test_that("resample() works for a region with multiple non-empty tracks and mean method", {
   expect_equal(
-    resample(source_multitrack, "chr1", 17027540, 17027570, "mean", 10, FALSE, "track1_rep1")$results, 
+    resample(source_multitrack, "chr1", 17027540, 17027570, "mean", 
+             bin_size = 10, 
+             allow_bin_size_adjustment = FALSE, 
+             track = "track1_rep1")$results, 
     c(0, 0.8, 2.2)
   )
 })

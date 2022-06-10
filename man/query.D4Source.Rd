@@ -4,7 +4,7 @@
 \alias{query.D4Source}
 \title{Extracts the given region from the D4 file}
 \usage{
-\method{query}{D4Source}(d4source, chr, start, end, track = NA)
+\method{query}{D4Source}(d4source, chr, start, end, ..., minus_strand = FALSE, track = NA)
 }
 \arguments{
 \item{d4source}{\code{D4Source} object}
@@ -14,6 +14,9 @@
 \item{start}{0-based start position}
 
 \item{end}{0-based exclusive end position}
+
+\item{minus_strand}{If TRUE, vector of position scores will read in the minus strand direction from
+\code{end - 1} to \code{start}.}
 
 \item{track}{Track name. If omitted or NA, queries the first track.}
 }

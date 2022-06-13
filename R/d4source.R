@@ -143,7 +143,7 @@ update_query_results.D4Source <- function(d4source, granges, ..., track = NA) {
 #' d4source <- D4Source(system.file("extdata", "example.d4", package="rd4"))
 #' mean(d4source, "chr1", 1000, 2000)
 #' 
-#' @export
+#' @export 
 mean.D4Source <- function(d4source, chr, start, end, ..., track = NA) {
   wrapr::stop_if_dot_args(substitute(list(...)), "mean()")
   d4source$mean(chr, start, end, track)
@@ -165,7 +165,7 @@ update_mean <- function(obj, ...) {UseMethod("update_mean")}
 #' granges <- GRanges(seqnames=c("chr1"), ranges=IRanges(1000:2000), strand=c("+"))
 #' granges_with_mean <- update_mean(d4source, granges)
 #' 
-#' @export
+#' @exportS3Method
 update_mean.D4Source <- function(d4source, granges, ..., track = NA) {
   wrapr::stop_if_dot_args(substitute(list(...)), "update_mean()")
   fn <- function(chr, start, end, track) {
@@ -193,12 +193,12 @@ update_mean.D4Source <- function(d4source, granges, ..., track = NA) {
 #' @param start 0-based start position
 #' @param end 0-based exclusive end position
 #' @param track Track name. If omitted or NA, queries the first track.
-#' @return Mean data value
+#' @return Median data value
 #' @examples
 #' d4source <- D4Source(system.file("extdata", "example.d4", package="rd4"))
 #' median(d4source, "chr1", 1000, 2000)
 #' 
-#' @export
+#' @exportS3Method stats::median
 median.D4Source <- function(d4source, chr, start, end, ..., track = NA) {
   wrapr::stop_if_dot_args(substitute(list(...)), "median()")
   d4source$median(chr, start, end, track)

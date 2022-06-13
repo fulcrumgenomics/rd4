@@ -18,7 +18,7 @@ median.D4Source(d4source, chr, start, end, ..., track = NA)
 \item{track}{Track name. If omitted or NA, queries the first track.}
 }
 \value{
-Mean data value
+Median data value
 }
 \description{
 Returns the median data value over the given region

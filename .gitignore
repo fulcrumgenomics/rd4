@@ -8,3 +8,6 @@ renv.lock
 renv/
 .Rhistory
 inst/doc
+/doc/
+/Meta/
+.DS_Store

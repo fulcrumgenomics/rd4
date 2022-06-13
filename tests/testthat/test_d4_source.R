@@ -1,3 +1,8 @@
+test_that("S3 methods don't break base/stats functions", {
+  expect_equal(mean(c(1, 2, 3, 3)), 2.25)
+  expect_equal(median(c(1, 2, 3, 3)), 2.5)
+})
+
 test_that("Methods raise error for nonexistent path", {
   # Note: helpful panic message from child thread is printed, but cannot be captured here to test its contents.
   expect_error(get_chroms(D4Source("nonexistent_path")))

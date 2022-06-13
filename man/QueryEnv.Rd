@@ -16,4 +16,11 @@ Environment with bindings to functions for accessing the parameters of a query. 
 bindings into Rust functions. Most users should not use this environment directly, but should instead access the
 $query attribute of a query result.
 }
+\examples{
+path <- system.file("extdata", "example.d4", package="rd4")
+d4source_env <- D4SourceEnv$new(path)
+query_result <- d4source_env$query("chr1", 1000, 2000, track = NA)
+query_result$query
+
+}
 \keyword{datasets}

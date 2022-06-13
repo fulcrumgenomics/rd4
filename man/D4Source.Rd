@@ -16,7 +16,7 @@ Object of class \code{D4Source}
 Establish a connection to a D4 file
 }
 \examples{
-d4source <- D4Source(system.file("extdata", "example.d4", package="rd4"))
-methods(class="D4Source")
+d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
+methods(class = 'D4Source')
 
 }

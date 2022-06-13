@@ -16,4 +16,10 @@ Environment with bindings to functions for extracting attributes from a query re
 expose bindings into Rust functions. Most users should not use this environment directly, but should instead
 access attributes of the list returned by \code{query()}.
 }
+\examples{
+path <- system.file("extdata", "example.d4", package="rd4")
+d4source_env <- D4SourceEnv$new(path)
+d4source_env$query("chr1", 1000, 2000, track = NA)
+
+}
 \keyword{datasets}

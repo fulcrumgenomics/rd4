@@ -4,10 +4,15 @@
 \alias{median.D4Source}
 \title{Returns the median data value over the given region}
 \usage{
-median.D4Source(d4source, chr, start, end, ..., track = NA)
+median.D4Source(x, na.rm = FALSE, ..., chr, start, end, track = NA)
 }
 \arguments{
-\item{d4source}{\code{D4Source} object}
+\item{x}{\code{D4Source} object}
+
+\item{na.rm}{Ignored; included in signature only to enable preservation of
+\code{stats::median} in the namespace while implementing median for D4Source}
+
+\item{...}{Not used for values, forces later arguments to bind by name}
 
 \item{chr}{Chromosome/contig name}
 
@@ -24,7 +29,7 @@ Median data value
 Returns the median data value over the given region
 }
 \examples{
-d4source <- D4Source(system.file("extdata", "example.d4", package="rd4"))
-median(d4source, "chr1", 1000, 2000)
+d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
+median(d4source, chr = 'chr1', start = 1000, end = 2000)
 
 }

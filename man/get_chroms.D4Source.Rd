@@ -4,16 +4,20 @@
 \alias{get_chroms.D4Source}
 \title{Returns the list of chromosomes in the source D4 file}
 \usage{
-\method{get_chroms}{D4Source}(d4source)
+\method{get_chroms}{D4Source}(x)
+}
+\arguments{
+\item{x}{\code{D4Source} object}
 }
 \value{
-Nested list; each element represents a chromosome and stores the chromosome name and length
+Nested list; each element represents a chromosome and stores the
+chromosome name and length
 }
 \description{
 Returns the list of chromosomes in the source D4 file
 }
 \examples{
-d4source <- D4Source(system.file("extdata", "example.d4", package="rd4"))
+d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
 get_chroms(d4source)
 
 }

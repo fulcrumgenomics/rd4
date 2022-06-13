@@ -4,7 +4,10 @@
 \alias{get_tracks.D4Source}
 \title{Returns the names of tracks in the source D4 file}
 \usage{
-\method{get_tracks}{D4Source}(d4source)
+\method{get_tracks}{D4Source}(x)
+}
+\arguments{
+\item{x}{\code{D4Source} object}
 }
 \value{
 Vector of track names
@@ -13,7 +16,7 @@ Vector of track names
 Returns the names of tracks in the source D4 file
 }
 \examples{
-d4source <- D4Source(system.file("extdata", "example.d4", package="rd4"))
+d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
 get_tracks(d4source)
 
 }

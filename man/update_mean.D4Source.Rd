@@ -2,29 +2,35 @@
 % Please edit documentation in R/d4source.R
 \name{update_mean.D4Source}
 \alias{update_mean.D4Source}
-\title{For a set of genomic ranges in a \code{GRanges} object, adds the mean value over the region as a metadata attribute for
-each genomic range, returning a new \code{GRanges} object with updated metadata.}
+\title{For a set of genomic ranges in a \code{GRanges} object, adds the mean value over
+the region as a metadata attribute for each genomic range, returning a new
+\code{GRanges} object with updated metadata.}
 \usage{
-\method{update_mean}{D4Source}(d4source, granges, ..., track = NA)
+\method{update_mean}{D4Source}(x, granges, ..., track = NA)
 }
 \arguments{
-\item{d4source}{\code{D4Source} object}
+\item{x}{\code{D4Source} object}
 
 \item{granges}{\code{GRanges} object containing genomic ranges of interest}
+
+\item{...}{Not used for values, forces later arguments to bind by name}
 
 \item{track}{Track name. If omitted or NA, queries the first track.}
 }
 \value{
-New version of \code{granges} with region mean added as the \code{"mean"} metadata attribute for each genomic range. If
-a track is specified, the track name will be included in the metadata column name.
+New version of \code{granges} with region mean added as the \code{'mean'}
+metadata attribute for each genomic range. If a track is specified, the
+track name will be included in the metadata column name.
 }
 \description{
-For a set of genomic ranges in a \code{GRanges} object, adds the mean value over the region as a metadata attribute for
-each genomic range, returning a new \code{GRanges} object with updated metadata.
+For a set of genomic ranges in a \code{GRanges} object, adds the mean value over
+the region as a metadata attribute for each genomic range, returning a new
+\code{GRanges} object with updated metadata.
 }
 \examples{
-d4source <- D4Source(system.file("extdata", "example.d4", package="rd4"))
-granges <- GRanges(seqnames=c("chr1"), ranges=IRanges(1000:2000), strand=c("+"))
+d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
+granges <- GRanges(seqnames = c('chr1'), ranges = IRanges(1000:2000), 
+                   strand = c('+'))
 granges_with_mean <- update_mean(d4source, granges)
 
 }

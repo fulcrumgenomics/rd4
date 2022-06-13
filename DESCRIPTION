@@ -2,9 +2,14 @@ Package: rd4
 Title: R Bindings for Reading and Querying Dense Depth Data Dump (D4) Files
 Version: 0.1.0
 Authors@R: c(
-    person("Pamela", "Russell", , "pam@fulcrumgenomics.com", role = c("aut", "cre")), 
-    person("Seth", "Stadick", , "sstadick@gmail.com", role = c("aut")))
-Description: The Dense Depth Data Dump (D4) format provides fast analysis and compact storage of quantitative genomics datasets. rd4 provides R bindings for reading and querying D4 files. For full details on the format, see Hou et al. (https://doi.org/10.1038/s43588-021-00085-0).
+        person("Pamela", "Russell", , 
+               "pam@fulcrumgenomics.com", role = c("aut", "cre")), 
+        person("Seth", "Stadick", , "sstadick@gmail.com", role = c("aut"))
+    )
+Description: The Dense Depth Data Dump (D4) format provides fast analysis and 
+    compact storage of quantitative genomics datasets. rd4 provides R bindings 
+    for reading and querying D4 files. For full details on the format, see Hou 
+    et al. (https://doi.org/10.1038/s43588-021-00085-0).
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -17,5 +22,6 @@ Suggests:
     rmarkdown,
     data.table,
     testthat (>= 3.0.0)
+SystemRequirements: GNU make
 biocViews: DataRepresentation, DataImport, Sequencing, Coverage
 VignetteBuilder: knitr

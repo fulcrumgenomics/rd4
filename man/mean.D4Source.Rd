@@ -4,16 +4,18 @@
 \alias{mean.D4Source}
 \title{Returns the mean data value over the given region}
 \usage{
-\method{mean}{D4Source}(d4source, chr, start, end, ..., track = NA)
+\method{mean}{D4Source}(x, chr, start, end, ..., track = NA)
 }
 \arguments{
-\item{d4source}{\code{D4Source} object}
+\item{x}{\code{D4Source} object}
 
 \item{chr}{Chromosome/contig name}
 
 \item{start}{0-based start position}
 
 \item{end}{0-based exclusive end position}
+
+\item{...}{Not used for values, forces later arguments to bind by name}
 
 \item{track}{Track name. If omitted or NA, queries the first track.}
 }
@@ -24,7 +26,7 @@ Mean data value
 Returns the mean data value over the given region
 }
 \examples{
-d4source <- D4Source(system.file("extdata", "example.d4", package="rd4"))
-mean(d4source, "chr1", 1000, 2000)
+d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
+mean(d4source, 'chr1', 1000, 2000)
 
 }

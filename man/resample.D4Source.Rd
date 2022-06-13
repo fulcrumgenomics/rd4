@@ -2,10 +2,11 @@
 % Please edit documentation in R/d4source.R
 \name{resample.D4Source}
 \alias{resample.D4Source}
-\title{Bin across the given region, populating each bin with a summary of the original data values in the bin region}
+\title{Bin across the given region, populating each bin with a summary of the
+original data values in the bin region}
 \usage{
 \method{resample}{D4Source}(
-  d4source,
+  x,
   chr,
   start,
   end,
@@ -17,7 +18,7 @@
 )
 }
 \arguments{
-\item{d4source}{\code{D4Source} object}
+\item{x}{\code{D4Source} object}
 
 \item{chr}{Chromosome/contig name}
 
@@ -25,11 +26,15 @@
 
 \item{end}{0-based exclusive end position}
 
-\item{method}{Summary statistic for the data in each bin; one of 'mean' or 'median'}
+\item{method}{Summary statistic for the data in each bin; one of 'mean' or
+'median'}
+
+\item{...}{Not used for values, forces later arguments to bind by name}
 
 \item{bin_size}{Bin size}
 
-\item{allow_bin_size_adjustment}{Only used for remote files: optimize bin size for reading over a network}
+\item{allow_bin_size_adjustment}{Only used for remote files: optimize bin
+size for reading over a network}
 
 \item{track}{Track name. If omitted or NA, queries the first track.}
 }
@@ -37,10 +42,11 @@
 New query result of resampled data as a list
 }
 \description{
-Bin across the given region, populating each bin with a summary of the original data values in the bin region
+Bin across the given region, populating each bin with a summary of the
+original data values in the bin region
 }
 \examples{
-d4source <- D4Source(system.file("extdata", "example.d4", package="rd4"))
-resample(d4source, "chr1", 0, 50000000, "mean")
+d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
+resample(d4source, 'chr1', 0, 50000000, 'mean')
 
 }

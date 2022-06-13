@@ -2,7 +2,7 @@
 
 ## Overview
 
-TBA
+The Dense Depth Data Dump (D4) format provides fast analysis and compact storage of quantitative genomics datasets. `rd4` provides R bindings for reading and querying D4 files. For full details on the format, see Hou et al. (https://doi.org/10.1038/s43588-021-00085-0).
 
 ## Installation
 
@@ -10,30 +10,9 @@ TBA
 
 ## Usage
 
-```R
-# Open a D4 file
-d4_file <- "file.d4"
-d4_source <- D4Source$new(d4_file)
-
-# Identify chromosomes and tracks
-chroms <- d4_source$get_chroms()
-tracks <- d4_source$get_tracks()
-
-# Query a region
-query <- d4_source$query("chr1", 100, 100000, NA)
-query_results <- query$results()
-query_chr <- query$query()$chr()
-
-# Summary statistics for a region
-mean <- d4_source$mean("chr1", 100, 100000, NA)
-median <- d4_source$median("chr1", 100, 100000, NA)
-histogram <- d4_source$histogram("chr1", 100, 100000, "", min = 0, max = 10)
-histogram_total <- histogram$total_count()
-percentile <- d4_source$percentile("chr1", 100, 100000, "", percentile = 0.5)
-
-# Resample a region
-resample <- d4_source$resample("chr1", 50000, 100000, NA, method = "mean", bin_size = 10, allow_bin_size_adjustment = FALSE)
-resample_results <- resample$results()
+```{r}
+library(rd4)
+browseVignettes("rd4")
 ```
 
 ## For developers
@@ -84,3 +63,7 @@ BiocCheck::BiocCheck()
 cd src/rust/
 cargo test
 ```
+
+### Formatting of auto-generated R code
+
+Auto-generated R code produced by `rextendr` may not satisfy formatting requirements for Bioconductor or CRAN. Consider using an automatic formatter like [formatr](https://yihui.org/formatr/) to auto-format before submission, or the `Code -> Reformat Code` workflow in Rstudio.

@@ -16,4 +16,11 @@ Environment with bindings to functions for accessing the attributes of a histogr
 expose bindings into Rust functions. Most users should not use this environment directly, but should instead call
 S3 methods on a \code{D4Source} object to return features of the distribution.
 }
+\examples{
+path <- system.file("extdata", "example.d4", package="rd4")
+d4source_env <- D4SourceEnv$new(path)
+histogram_env <- d4source_env$histogram("chr1", 1000, 2000, track = NA, min = 0, max = 100)
+histogram_env$total_count()
+
+}
 \keyword{datasets}

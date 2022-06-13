@@ -11,3 +11,4 @@ inst/doc
 /doc/
 /Meta/
 .DS_Store
+^src/rust/target/release/build/d4-hts-e00f9baea0f6788f/out/htslib/.git/

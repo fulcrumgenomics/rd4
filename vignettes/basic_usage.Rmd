@@ -54,7 +54,7 @@ Region coordinates are 0-based, half-open.
 
 ```{r summary}
 mean(d4source, "chr1", 17027500, 17027600)
-median(d4source, "chr1", 17027500, 17027600)
+median(d4source, chr = "chr1", start = 17027500, end = 17027600)
 percentile(d4source, "chr1", 17027500, 17027600, 50)
 ```
 
@@ -82,7 +82,8 @@ query(d4source, "chr1", 17027500, 17027600, minus_strand =TRUE)$results
 This operation reduces the resolution of the data vector, summarizing values at the level of the bin size and returning a new query result.
 
 ```{r resample}
-query_resample <- resample(d4source, "chr1", 17027500, 17027600, method = "mean", bin_size = 10)
+query_resample <- resample(
+  d4source, "chr1", 17027500, 17027600, method = "mean", bin_size = 10)
 
 # The result has the same structure as a `query()` result
 names(query_resample)
@@ -101,7 +102,8 @@ query_resample$bin_size
 Each method returns a new `GRanges` object with updated metadata.
 
 ```{r granges}
-# Manually construct a GRanges object with the above genomic interval and one other interval
+# Manually construct a GRanges object with the above genomic interval and one 
+# other interval
 # `IRanges` coordinates are 1-based inclusive
 granges <- GRanges(
   seqnames = "chr1", 
@@ -125,3 +127,8 @@ granges <- update_query_results(d4source, granges)
 lapply(mcols(granges)$query_results, function(result) result$results)
 ```
 
+## Session info
+
+```{r session_info}
+sessionInfo()
+```

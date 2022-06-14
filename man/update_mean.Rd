@@ -2,24 +2,30 @@
 % Please edit documentation in R/d4source.R
 \name{update_mean}
 \alias{update_mean}
-\title{Generic function to update mean metadata in a GRanges object}
+\title{For a set of genomic ranges in a \code{GRanges} object, adds the mean value over
+the region as a metadata attribute for each genomic range, returning a new
+\code{GRanges} object with updated metadata.}
 \usage{
-update_mean(x, granges, ..., track)
+update_mean(d4source, granges, ..., track = NA)
 }
 \arguments{
-\item{x}{Input object}
+\item{d4source}{\code{D4Source} object}
 
-\item{granges}{GRanges object}
+\item{granges}{\code{GRanges} object containing genomic ranges of interest}
 
 \item{...}{Not used for values, forces later arguments to bind by name}
 
-\item{track}{Track name}
+\item{track}{Track name. If omitted or NA, queries the first track.}
 }
 \value{
-New version of \code{granges} with metadata updated
+New version of \code{granges} with region mean added as the \code{'mean'}
+metadata attribute for each genomic range. If a track is specified, the
+track name will be included in the metadata column name.
 }
 \description{
-Generic function to update mean metadata in a GRanges object
+For a set of genomic ranges in a \code{GRanges} object, adds the mean value over
+the region as a metadata attribute for each genomic range, returning a new
+\code{GRanges} object with updated metadata.
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

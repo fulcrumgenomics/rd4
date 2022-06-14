@@ -2,26 +2,36 @@
 % Please edit documentation in R/d4source.R
 \name{update_percentile}
 \alias{update_percentile}
-\title{Generic function to update percentile metadata in a GRanges object}
+\title{For a set of genomic ranges in a \code{GRanges} object, adds the percentile value
+over the region as a metadata attribute for each genomic range, returning a
+new \code{GRanges} object with updated metadata.}
 \usage{
-update_percentile(x, granges, percentile, ..., track)
+update_percentile(d4source, granges, percentile, ..., track = NA)
 }
 \arguments{
-\item{x}{Input object}
+\item{d4source}{\code{D4Source} object}
 
-\item{granges}{GRanges object}
+\item{granges}{\code{GRanges} object containing genomic ranges of interest}
 
-\item{percentile}{Percentile between 0 and 100}
+\item{percentile}{Percentile between 0 and 100. Example: percentile 0 is the
+minimum data value, 50 is the median and
+100 is the maximum.}
 
 \item{...}{Not used for values, forces later arguments to bind by name}
 
-\item{track}{Track name}
+\item{track}{Track name. If omitted or NA, queries the first track.}
 }
 \value{
-New version of \code{granges} with metadata updated
+New version of \code{granges} with region percentile added as the
+\code{'percentile_<percentile>'} metadata attribute for each genomic range. The
+percentile requested (between 0 and 100) is included in the metadata column
+name. If a track is specified, the track name will also be included in the
+column name.
 }
 \description{
-Generic function to update percentile metadata in a GRanges object
+For a set of genomic ranges in a \code{GRanges} object, adds the percentile value
+over the region as a metadata attribute for each genomic range, returning a
+new \code{GRanges} object with updated metadata.
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

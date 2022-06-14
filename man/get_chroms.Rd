@@ -2,18 +2,19 @@
 % Please edit documentation in R/d4source.R
 \name{get_chroms}
 \alias{get_chroms}
-\title{Generic function for the chromosomes in a data object}
+\title{Returns the list of chromosomes in the source D4 file}
 \usage{
-get_chroms(x)
+get_chroms(d4source)
 }
 \arguments{
-\item{x}{Input object}
+\item{d4source}{\code{D4Source} object}
 }
 \value{
-List-like container of chromosomes
+Nested list; each element represents a chromosome and stores the
+chromosome name and length
 }
 \description{
-Generic function for the chromosomes in a data object
+Returns the list of chromosomes in the source D4 file
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

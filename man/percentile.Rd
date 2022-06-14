@@ -2,12 +2,12 @@
 % Please edit documentation in R/d4source.R
 \name{percentile}
 \alias{percentile}
-\title{Generic function to calculate percentile over a genomic interval}
+\title{Returns the data value at the given percentile for the given region}
 \usage{
-percentile(x, chr, start, end, percentile, ..., track)
+percentile(d4source, chr, start, end, percentile, ..., track = NA)
 }
 \arguments{
-\item{x}{Input object}
+\item{d4source}{\code{D4Source} object}
 
 \item{chr}{Chromosome/contig name}
 
@@ -20,13 +20,13 @@ the minimum data value, 50 is the median and 100 is the maximum.}
 
 \item{...}{Not used for values, forces later arguments to bind by name}
 
-\item{track}{Track name}
+\item{track}{Track name. If omitted or NA, queries the first track.}
 }
 \value{
 Data value at the given percentile
 }
 \description{
-Generic function to calculate percentile over a genomic interval
+Returns the data value at the given percentile for the given region
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

@@ -2,22 +2,23 @@
 % Please edit documentation in R/d4source.R
 \name{resample}
 \alias{resample}
-\title{Generic method to resample values over a genomic data object}
+\title{Bin across the given region, populating each bin with a summary of the
+original data values in the bin region}
 \usage{
 resample(
-  x,
+  d4source,
   chr,
   start,
   end,
   method,
   ...,
-  bin_size,
-  allow_bin_size_adjustment,
-  track
+  bin_size = 1000,
+  allow_bin_size_adjustment = TRUE,
+  track = NA
 )
 }
 \arguments{
-\item{x}{Input object}
+\item{d4source}{\code{D4Source} object}
 
 \item{chr}{Chromosome/contig name}
 
@@ -25,21 +26,24 @@ resample(
 
 \item{end}{0-based exclusive end position}
 
-\item{method}{Summary statistic for the data in each bin}
+\item{method}{Summary statistic for the data in each bin; one of 'mean' or
+'median'}
 
 \item{...}{Not used for values, forces later arguments to bind by name}
 
 \item{bin_size}{Bin size}
 
-\item{allow_bin_size_adjustment}{Allow bin size to be optimized}
+\item{allow_bin_size_adjustment}{Only used for remote files: optimize bin
+size for reading over a network}
 
-\item{track}{Track name}
+\item{track}{Track name. If omitted or NA, queries the first track.}
 }
 \value{
-Resampled data
+New query result of resampled data as a list
 }
 \description{
-Generic method to resample values over a genomic data object
+Bin across the given region, populating each bin with a summary of the
+original data values in the bin region
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

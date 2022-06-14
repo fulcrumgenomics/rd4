@@ -2,12 +2,12 @@
 % Please edit documentation in R/d4source.R
 \name{query}
 \alias{query}
-\title{Generic function to query a genomic data object}
+\title{Extracts the given region from the D4 file}
 \usage{
-query(x, chr, start, end, ..., minus_strand, track)
+query(d4source, chr, start, end, ..., minus_strand = FALSE, track = NA)
 }
 \arguments{
-\item{x}{Input object}
+\item{d4source}{\code{D4Source} object}
 
 \item{chr}{Chromosome/contig name}
 
@@ -21,13 +21,13 @@ query(x, chr, start, end, ..., minus_strand, track)
 minus strand direction from
 \code{end - 1} to \code{start}.}
 
-\item{track}{Track name}
+\item{track}{Track name. If omitted or NA, queries the first track.}
 }
 \value{
-Query result
+Query result as a list
 }
 \description{
-Generic function to query a genomic data object
+Extracts the given region from the D4 file
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

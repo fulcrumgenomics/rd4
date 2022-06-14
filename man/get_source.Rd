@@ -2,18 +2,18 @@
 % Please edit documentation in R/d4source.R
 \name{get_source}
 \alias{get_source}
-\title{Generic function for the source of an object}
+\title{Returns the path to the source D4 file}
 \usage{
-get_source(x)
+get_source(d4source)
 }
 \arguments{
-\item{x}{Input object}
+\item{d4source}{\code{D4Source} object}
 }
 \value{
-The source
+The path to the source D4 file
 }
 \description{
-Generic function for the source of an object
+Returns the path to the source D4 file
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

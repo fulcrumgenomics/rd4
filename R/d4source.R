@@ -33,48 +33,22 @@ D4Source <- function(path) {
     d4
 }
 
-#' Generic function for the source of an object
-#'
-#' @param x Input object
-#' @return The source
-#' @examples
-#' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-#' get_source(d4source)
-#' 
-#' @export
-get_source <- function(x) {
-    UseMethod("get_source")
-}
-
 #' Returns the path to the source D4 file
 #'
-#' @param x `D4Source` object
+#' @param d4source `D4Source` object
 #' @return The path to the source D4 file
 #' @examples
 #' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
 #' get_source(d4source)
 #'
 #' @export
-get_source.D4Source <- function(x) {
-    x$get_source()
-}
-
-#' Generic function for the chromosomes in a data object
-#'
-#' @param x Input object
-#' @return List-like container of chromosomes
-#' @examples
-#' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-#' get_chroms(d4source)
-#'
-#' @export
-get_chroms <- function(x) {
-    UseMethod("get_chroms")
+get_source <- function(d4source) {
+    d4source$get_source()
 }
 
 #' Returns the list of chromosomes in the source D4 file
 #'
-#' @param x `D4Source` object
+#' @param d4source `D4Source` object
 #' @return Nested list; each element represents a chromosome and stores the
 #' chromosome name and length
 #' @examples
@@ -82,60 +56,26 @@ get_chroms <- function(x) {
 #' get_chroms(d4source)
 #'
 #' @export
-get_chroms.D4Source <- function(x) {
-    x$get_chroms()
-}
-
-#' Generic function for the tracks in a data object
-#'
-#' @param x Input object
-#' @return List-like container of track names
-#' @examples
-#' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-#' get_tracks(d4source)
-#'
-#' @export
-get_tracks <- function(x) {
-    UseMethod("get_tracks")
+get_chroms <- function(d4source) {
+    d4source$get_chroms()
 }
 
 #' Returns the names of tracks in the source D4 file
 #'
-#' @param x `D4Source` object
+#' @param d4source `D4Source` object
 #' @return Vector of track names
 #' @examples
 #' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
 #' get_tracks(d4source)
 #'
 #' @export
-get_tracks.D4Source <- function(x) {
-    x$get_tracks()
-}
-
-#' Generic function to query a genomic data object
-#'
-#' @param x Input object
-#' @param chr Chromosome/contig name
-#' @param start 0-based start position
-#' @param end 0-based exclusive end position
-#' @param ... Not used for values, forces later arguments to bind by name
-#' @param minus_strand If TRUE, vector of position scores will read in the
-#' minus strand direction from
-#' `end - 1` to `start`.
-#' @param track Track name
-#' @return Query result
-#' @examples
-#' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-#' query_result <- query(d4source, 'chr1', 1000, 2000)
-#'
-#' @export
-query <- function(x, chr, start, end, ..., minus_strand, track) {
-    UseMethod("query")
+get_tracks <- function(d4source) {
+    d4source$get_tracks()
 }
 
 #' Extracts the given region from the D4 file
 #'
-#' @param x `D4Source` object
+#' @param d4source `D4Source` object
 #' @param chr Chromosome/contig name
 #' @param start 0-based start position
 #' @param end 0-based exclusive end position
@@ -151,36 +91,18 @@ query <- function(x, chr, start, end, ..., minus_strand, track) {
 #'
 #' @importFrom wrapr stop_if_dot_args
 #' @export
-query.D4Source <-
-    function(x, chr, start, end, ..., minus_strand = FALSE, track = NA) {
+query <-
+    function(d4source, chr, start, end, ..., minus_strand = FALSE, track = NA) {
         stop_if_dot_args(substitute(list(...)), "query()")
         query_result(
-            x$query(chr, start, end, track), minus_strand = minus_strand)
+            d4source$query(chr, start, end, track), minus_strand = minus_strand)
     }
-
-#' Generic function to update query result metadata in a GRanges object
-#'
-#' @param x Input object
-#' @param granges GRanges object
-#' @param ... Not used for values, forces later arguments to bind by name
-#' @param track Track name
-#' @return New version of `granges` with metadata updated
-#' @examples
-#' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-#' granges <- GRanges(seqnames = c('chr1'), ranges = IRanges(1000:2000), 
-#'                    strand = c('+'))
-#' granges_with_query <- update_query_results(d4source, granges)
-#'
-#' @export
-update_query_results <- function(x, granges, ..., track) {
-    UseMethod("update_query_results")
-}
 
 #' For a set of genomic ranges in a `GRanges` object, extracts each region from
 #' the D4 file and adds the query result as a metadata attribute for each
 #' genomic range, returning a new `GRanges` object with updated metadata.
 #'
-#' @param x `D4Source` object
+#' @param d4source `D4Source` object
 #' @param granges `GRanges` object containing genomic ranges of interest
 #' @param ... Not used for values, forces later arguments to bind by name
 #' @param track Track name. If omitted or NA, queries the first track.
@@ -198,12 +120,12 @@ update_query_results <- function(x, granges, ..., track) {
 #' @importFrom GenomicRanges mcols seqnames start end ranges strand
 #' @importFrom wrapr stop_if_dot_args
 #' @export
-update_query_results.D4Source <-
-    function(x, granges, ..., track = NA) {
+update_query_results <-
+    function(d4source, granges, ..., track = NA) {
         stop_if_dot_args(substitute(list(...)), "update_query_results()")
         fn <- function(chr, start, end, minus_strand, track) {
-            query.D4Source(
-                x,
+            query(
+                d4source,
                 chr = chr,
                 start = start,
                 end = end,
@@ -252,29 +174,11 @@ mean.D4Source <-
         x$mean(chr, start, end, track)
     }
 
-#' Generic function to update mean metadata in a GRanges object
-#'
-#' @param x Input object
-#' @param granges GRanges object
-#' @param ... Not used for values, forces later arguments to bind by name
-#' @param track Track name
-#' @return New version of `granges` with metadata updated
-#' @examples
-#' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-#' granges <- GRanges(seqnames = c('chr1'), ranges = IRanges(1000:2000), 
-#'                    strand = c('+'))
-#' granges_with_mean <- update_mean(d4source, granges)
-#'
-#' @export
-update_mean <- function(x, granges, ..., track) {
-    UseMethod("update_mean")
-}
-
 #' For a set of genomic ranges in a `GRanges` object, adds the mean value over
 #' the region as a metadata attribute for each genomic range, returning a new
 #' `GRanges` object with updated metadata.
 #'
-#' @param x `D4Source` object
+#' @param d4source `D4Source` object
 #' @param granges `GRanges` object containing genomic ranges of interest
 #' @param ... Not used for values, forces later arguments to bind by name
 #' @param track Track name. If omitted or NA, queries the first track.
@@ -289,13 +193,13 @@ update_mean <- function(x, granges, ..., track) {
 #'
 #' @importFrom GenomicRanges mcols seqnames start end ranges strand
 #' @importFrom wrapr stop_if_dot_args
-#' @exportS3Method
-update_mean.D4Source <-
-    function(x, granges, ..., track = NA) {
+#' @export
+update_mean <-
+    function(d4source, granges, ..., track = NA) {
         stop_if_dot_args(substitute(list(...)), "update_mean()")
         fn <- function(chr, start, end, track) {
             mean.D4Source(
-                x,
+                d4source,
                 chr = chr,
                 start = start,
                 end = end,
@@ -344,29 +248,11 @@ median.D4Source <-
         x$median(chr, start, end, track)
     }
 
-#' Generic function to update median metadata in a GRanges object
-#'
-#' @param x Input object
-#' @param granges GRanges object
-#' @param ... Not used for values, forces later arguments to bind by name
-#' @param track Track name
-#' @return New version of `granges` with metadata updated
-#' @examples
-#' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-#' granges <- GRanges(seqnames = c('chr1'), ranges = IRanges(1000:2000), 
-#'                    strand = c('+'))
-#' granges_with_median <- update_median(d4source, granges)
-#'
-#' @export
-update_median <- function(x, granges, ..., track) {
-    UseMethod("update_median")
-}
-
 #' For a set of genomic ranges in a `GRanges` object, adds the median value
 #' over the region as a metadata attribute for each genomic range, returning a
 #' new `GRanges` object with updated metadata.
 #'
-#' @param x `D4Source` object
+#' @param d4source `D4Source` object
 #' @param granges `GRanges` object containing genomic ranges of interest
 #' @param ... Not used for values, forces later arguments to bind by name
 #' @param track Track name. If omitted or NA, queries the first track.
@@ -382,12 +268,12 @@ update_median <- function(x, granges, ..., track) {
 #' @importFrom GenomicRanges mcols seqnames start end ranges strand
 #' @importFrom wrapr stop_if_dot_args
 #' @export
-update_median.D4Source <-
-    function(x, granges, ..., track = NA) {
+update_median <-
+    function(d4source, granges, ..., track = NA) {
         stop_if_dot_args(substitute(list(...)), "update_median()")
         fn <- function(chr, start, end, track) {
             median.D4Source(
-                x,
+                d4source,
                 chr = chr,
                 start = start,
                 end = end,
@@ -413,29 +299,9 @@ update_median.D4Source <-
 
     }
 
-#' Generic function to calculate percentile over a genomic interval
-#'
-#' @param x Input object
-#' @param chr Chromosome/contig name
-#' @param start 0-based start position
-#' @param end 0-based exclusive end position
-#' @param percentile Percentile between 0 and 100. Example: percentile 0 is
-#' the minimum data value, 50 is the median and 100 is the maximum.
-#' @param ... Not used for values, forces later arguments to bind by name
-#' @param track Track name
-#' @return Data value at the given percentile
-#' @examples
-#' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-#' percentile(d4source, 'chr1', 1000, 2000, 50)
-#'
-#' @export
-percentile <- function(x, chr, start, end, percentile, ..., track) {
-    UseMethod("percentile")
-}
-
 #' Returns the data value at the given percentile for the given region
 #'
-#' @param x `D4Source` object
+#' @param d4source `D4Source` object
 #' @param chr Chromosome/contig name
 #' @param start 0-based start position
 #' @param end 0-based exclusive end position
@@ -450,36 +316,17 @@ percentile <- function(x, chr, start, end, percentile, ..., track) {
 #'
 #' @importFrom wrapr stop_if_dot_args
 #' @export
-percentile.D4Source <-
-    function(x, chr, start, end, percentile, ..., track = NA) {
+percentile <-
+    function(d4source, chr, start, end, percentile, ..., track = NA) {
         stop_if_dot_args(substitute(list(...)), "percentile()")
-        x$percentile(chr, start, end, track, percentile)
+        d4source$percentile(chr, start, end, track, percentile)
     }
-
-#' Generic function to update percentile metadata in a GRanges object
-#'
-#' @param x Input object
-#' @param granges GRanges object
-#' @param percentile Percentile between 0 and 100
-#' @param ... Not used for values, forces later arguments to bind by name
-#' @param track Track name
-#' @return New version of `granges` with metadata updated
-#' @examples
-#' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-#' granges <- GRanges(seqnames = c('chr1'), ranges = IRanges(1000:2000), 
-#'                    strand = c('+'))
-#' granges_with_percentile <- update_percentile(d4source, granges, 50)
-#'
-#' @export
-update_percentile <- function(x, granges, percentile, ..., track) {
-    UseMethod("update_percentile")
-}
 
 #' For a set of genomic ranges in a `GRanges` object, adds the percentile value
 #' over the region as a metadata attribute for each genomic range, returning a
 #' new `GRanges` object with updated metadata.
 #'
-#' @param x `D4Source` object
+#' @param d4source `D4Source` object
 #' @param granges `GRanges` object containing genomic ranges of interest
 #' @param percentile Percentile between 0 and 100. Example: percentile 0 is the
 #' minimum data value, 50 is the median and
@@ -500,12 +347,12 @@ update_percentile <- function(x, granges, percentile, ..., track) {
 #' @importFrom GenomicRanges mcols seqnames start end ranges strand
 #' @importFrom wrapr stop_if_dot_args
 #' @export
-update_percentile.D4Source <-
-    function(x, granges, percentile, ..., track = NA) {
+update_percentile <-
+    function(d4source, granges, percentile, ..., track = NA) {
         stop_if_dot_args(substitute(list(...)), "update_percentile()")
         fn <- function(chr, start, end, track) {
-            percentile.D4Source(
-                x,
+            percentile(
+                d4source,
                 chr = chr,
                 start = start,
                 end = end,
@@ -535,33 +382,10 @@ update_percentile.D4Source <-
     }
 
 
-#' Generic method to resample values over a genomic data object
-#'
-#' @param x Input object
-#' @param chr Chromosome/contig name
-#' @param start 0-based start position
-#' @param end 0-based exclusive end position
-#' @param method Summary statistic for the data in each bin
-#' @param ... Not used for values, forces later arguments to bind by name
-#' @param bin_size Bin size
-#' @param allow_bin_size_adjustment Allow bin size to be optimized
-#' @param track Track name
-#' @return Resampled data
-#' @examples
-#' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-#' resample(d4source, 'chr1', 0, 50000000, 'mean')
-#'
-#' @export
-resample <- function(
-    x, chr, start, end, method, ..., bin_size, allow_bin_size_adjustment, track
-) {
-    UseMethod("resample")
-}
-
 #' Bin across the given region, populating each bin with a summary of the
 #' original data values in the bin region
 #'
-#' @param x `D4Source` object
+#' @param d4source `D4Source` object
 #' @param chr Chromosome/contig name
 #' @param start 0-based start position
 #' @param end 0-based exclusive end position
@@ -578,14 +402,14 @@ resample <- function(
 #' resample(d4source, 'chr1', 0, 50000000, 'mean')
 #'
 #' @export
-resample.D4Source <-
+resample <-
     function(
-             x, chr, start, end, method, ..., bin_size = 1000,
-             allow_bin_size_adjustment = TRUE, track = NA
+        d4source, chr, start, end, method, ..., bin_size = 1000,
+        allow_bin_size_adjustment = TRUE, track = NA
     ) {
         stop_if_dot_args(substitute(list(...)), "resample()")
         query_result(
-            x$resample(
+            d4source$resample(
                 chr,
                 start,
                 end,

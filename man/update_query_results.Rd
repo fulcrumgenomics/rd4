@@ -2,24 +2,32 @@
 % Please edit documentation in R/d4source.R
 \name{update_query_results}
 \alias{update_query_results}
-\title{Generic function to update query result metadata in a GRanges object}
+\title{For a set of genomic ranges in a \code{GRanges} object, extracts each region from
+the D4 file and adds the query result as a metadata attribute for each
+genomic range, returning a new \code{GRanges} object with updated metadata.}
 \usage{
-update_query_results(x, granges, ..., track)
+update_query_results(d4source, granges, ..., track = NA)
 }
 \arguments{
-\item{x}{Input object}
+\item{d4source}{\code{D4Source} object}
 
-\item{granges}{GRanges object}
+\item{granges}{\code{GRanges} object containing genomic ranges of interest}
 
 \item{...}{Not used for values, forces later arguments to bind by name}
 
-\item{track}{Track name}
+\item{track}{Track name. If omitted or NA, queries the first track.}
 }
 \value{
-New version of \code{granges} with metadata updated
+New version of \code{granges} with query results added as the
+\code{'query_results'} metadata attribute for each genomic range. For ranges on
+the minus strand, the vector of position scores reads in the minus strand
+direction. If a track is specified, the track name will be included in the
+metadata column name.
 }
 \description{
-Generic function to update query result metadata in a GRanges object
+For a set of genomic ranges in a \code{GRanges} object, extracts each region from
+the D4 file and adds the query result as a metadata attribute for each
+genomic range, returning a new \code{GRanges} object with updated metadata.
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

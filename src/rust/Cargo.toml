@@ -8,11 +8,10 @@ crate-type = [ 'staticlib' ]
 name = 'rd4'
 
 [dependencies]
-d4 = "0.3.6"
-#extendr-api = { path = "../../../extendr/extendr-api"}
+#d4 = "0.3.6"
+d4 = { git = "https://github.com/38/d4-format", branch="master" }
 extendr-api = { git = "https://github.com/extendr/extendr", branch="master" }
 ordered-float = "2.10.0"
-#extendr-api = "0.2.0"
 serde = { version = "1.0.136", features = ["derive"] }
 
 [dev-dependencies]

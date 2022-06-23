@@ -1,2 +1,14 @@
 src/rust/target
 src/rust/Cargo.lock
+.Rproj.user
+.Rbuildignore
+.Rprofile
+rd4.Rproj
+renv.lock
+renv/
+.Rhistory
+inst/doc
+/doc/
+/Meta/
+.DS_Store
+^src/rust/target/release/build/d4-hts-e00f9baea0f6788f/out/htslib/.git/

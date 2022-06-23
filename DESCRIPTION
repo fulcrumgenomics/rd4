@@ -1,15 +1,27 @@
 Package: rd4
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+Title: R Bindings for Reading and Querying Dense Depth Data Dump (D4) Files
+Version: 0.1.0
+Authors@R: c(
+        person("Pamela", "Russell", , 
+               "pam@fulcrumgenomics.com", role = c("aut", "cre")), 
+        person("Seth", "Stadick", , "sstadick@gmail.com", role = c("aut"))
+    )
+Description: The Dense Depth Data Dump (D4) format provides fast analysis and 
+    compact storage of quantitative genomics datasets. rd4 provides R bindings 
+    for reading and querying D4 files. For full details on the format, see Hou 
+    et al. (https://doi.org/10.1038/s43588-021-00085-0).
+License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.0
+Depends:
+    GenomicRanges,
+    wrapr
 Suggests: 
+    knitr,
+    rmarkdown,
+    data.table,
     testthat (>= 3.0.0)
-Config/testthat/edition: 3
+SystemRequirements: GNU make
+biocViews: DataRepresentation, DataImport, Sequencing, Coverage
+VignetteBuilder: knitr

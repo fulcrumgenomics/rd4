@@ -1,0 +1,134 @@
+---
+title: "rd4 Basic Usage"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Basic Usage}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+## Load dependencies for the vignette
+
+```{r setup}
+suppressPackageStartupMessages(library(rd4))
+suppressPackageStartupMessages(library(data.table))
+suppressPackageStartupMessages(library(knitr))
+```
+
+## Locate and load the example D4 file
+
+```{r load_d4}
+d4_path <- system.file("extdata", "example.d4", package="rd4")
+d4source <- D4Source(d4_path)
+```
+
+## Explore some basic features of the data
+
+Chromosome names and lengths
+
+```{r chrs}
+chrs <- get_chroms(d4source)
+head(rbindlist(chrs))
+```
+
+Track names
+
+```{r tracks}
+get_tracks(d4source)
+```
+
+## Explore data values across a genomic region
+
+Region coordinates are 0-based, half-open.
+
+### Summary statistics
+
+```{r summary}
+mean(d4source, "chr1", 17027500, 17027600)
+median(d4source, chr = "chr1", start = 17027500, end = 17027600)
+percentile(d4source, "chr1", 17027500, 17027600, 50)
+```
+
+### Vector of data values
+
+```{r query}
+# Query a genomic interval
+query <- query(d4source, "chr1", 17027500, 17027600)
+
+# Fields in the result object
+names(query)
+
+# Vector of data values
+query$results
+
+# The query that was supplied
+query$query
+
+# The same region on the minus strand
+query(d4source, "chr1", 17027500, 17027600, minus_strand =TRUE)$results
+```
+
+## Resample a region
+
+This operation reduces the resolution of the data vector, summarizing values at the level of the bin size and returning a new query result.
+
+```{r resample}
+query_resample <- resample(
+  d4source, "chr1", 17027500, 17027600, method = "mean", bin_size = 10)
+
+# The result has the same structure as a `query()` result
+names(query_resample)
+
+# Values are summarized per bin
+query_resample$results
+
+# The bin_size field is set
+query_resample$bin_size
+```
+
+## Working with `GenomicRanges` `Granges` objects
+
+[GenomicRanges](https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html) is the [Bioconductor](https://bioconductor.org/) package for representation and manipulation of genomic intervals. `rd4` provides methods to batch query a D4 file with all intervals in a `GRanges` object, updating the metadata for each genomic range with the values from the D4 data.
+
+Each method returns a new `GRanges` object with updated metadata.
+
+```{r granges}
+# Manually construct a GRanges object with the above genomic interval and one 
+# other interval
+# `IRanges` coordinates are 1-based inclusive
+granges <- GRanges(
+  seqnames = "chr1", 
+  ranges = IRanges(start = c(17027501, 17027701), end = c(17027600, 17027800)), 
+  strand = "+"
+)
+
+# Add summary statistics as interval metadata
+granges <- update_mean(d4source, granges)
+granges <- update_median(d4source, granges)
+granges <- update_percentile(d4source, granges, 25)
+granges <- update_percentile(d4source, granges, 50)
+granges <- update_percentile(d4source, granges, 75)
+
+# View populated metadata
+print(granges)
+kable(mcols(granges))
+
+# Add position-level values as interval metadata
+granges <- update_query_results(d4source, granges)
+lapply(mcols(granges)$query_results, function(result) result$results)
+```
+
+## Session info
+
+```{r session_info}
+sessionInfo()
+```

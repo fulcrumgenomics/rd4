@@ -4,7 +4,7 @@ use std::any::Any;
 use d4::ssio::http::HttpReader;
 use d4::Chrom;
 
-use crate::{d4_reader::D4Reader, Query, QueryResult};
+use crate::{d4_reader::D4Reader, QueryEnv, QueryResultEnv};
 
 use super::HIGH_DEPTH;
 
@@ -35,7 +35,7 @@ impl D4Reader for HttpD4Reader {
         self.source.clone()
     }
 
-    fn query_track(&self, query: &Query, track: Option<&str>) -> QueryResult {
+    fn query_track(&self, query: &QueryEnv, track: Option<&str>) -> QueryResultEnv {
         let mut reader = self.open(track);
         let denominator = self.get_demoninator();
         let result: Vec<f64> = reader
@@ -49,7 +49,7 @@ impl D4Reader for HttpD4Reader {
             .map(|res| if let Ok((_, value)) = res { value as f64 / denominator } else { 0.0 })
             .collect();
 
-        QueryResult::new(
+        QueryResultEnv::new(
             query.clone(),
             self.source.clone(),
             track.map(|x| x.to_owned()),
@@ -62,7 +62,7 @@ impl D4Reader for HttpD4Reader {
         self
     }
 
-    fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64> {
+    fn mean(&self, regions: &[QueryEnv], track: Option<&str>) -> Vec<f64> {
         let mut reader = self.open(track);
         let mut output = Vec::with_capacity(regions.len());
         let index =
@@ -94,25 +94,13 @@ impl D4Reader for HttpD4Reader {
             bin_size
         }
     }
-
-    fn percentile(&self, _regions: &[Query], _track: Option<&str>, _percentile: f64) -> Vec<f64> {
-        unimplemented!("Percentile functionality is not implemented for remote D4 sources.")
-    }
-
-    fn histogram(
-        &self,
-        _regions: &[Query],
-        _min: i32,
-        _max: i32,
-        _track: Option<&str>,
-    ) -> Vec<crate::Histogram> {
-        unimplemented!("Histogram functionality is not implemented for remote D4 sources.")
-    }
 }
 
 impl HttpD4Reader {
     /// Open an [`HttpD4Reader`] on the specified track.
     fn open(&self, track: Option<&str>) -> d4::ssio::D4TrackReader<HttpReader> {
+        // TODO: D4TrackReader::open splits the path on `:` and takes anything to the right as a track specifier
+        // There should be a way to create a reader like remote with the optional track name
         let conn = d4::ssio::http::HttpReader::new(&self.source)
             .unwrap_or_else(|_| panic!("Failed to open remote reader for: {:?} ", self.source));
         d4::ssio::D4TrackReader::from_reader(conn, track).unwrap_or_else(|_| {

@@ -8,13 +8,12 @@ crate-type = [ 'staticlib' ]
 name = 'rd4'
 
 [dependencies]
-d4 = "0.3.6"
-#extendr-api = { path = "../../../extendr/extendr-api"}
+#d4 = "0.3.6"
+d4 = { git = "https://github.com/38/d4-format", rev="871de45" }
 extendr-api = { git = "https://github.com/extendr/extendr", branch="master" }
 ordered-float = "2.10.0"
-#extendr-api = "0.2.0"
 serde = { version = "1.0.136", features = ["derive"] }
 
 [dev-dependencies]
 tempfile = "3.3.0"
-d4tools = "0.3.4"
+d4tools = "0.3.6"

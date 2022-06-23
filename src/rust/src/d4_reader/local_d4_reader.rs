@@ -1,5 +1,6 @@
 //! Implementation of [`D4Reader`] for files on a filesystem.
 use std::any::Any;
+use std::panic;
 
 use d4::stab::SecondaryTablePartReader;
 use d4::task::{Task, TaskContext};
@@ -7,8 +8,8 @@ use d4::Chrom;
 use d4::{ptab::DecodeResult, task::Mean};
 use ordered_float::OrderedFloat;
 
-use crate::Histogram;
-use crate::{d4_reader::D4Reader, Query, QueryResult};
+use crate::HistogramEnv;
+use crate::{d4_reader::D4Reader, QueryEnv, QueryResultEnv};
 
 use super::HIGH_DEPTH;
 
@@ -40,7 +41,7 @@ impl D4Reader for LocalD4Reader {
         self.path.clone()
     }
 
-    fn query_track(&self, query: &Query, track: Option<&str>) -> QueryResult {
+    fn query_track(&self, query: &QueryEnv, track: Option<&str>) -> QueryResultEnv {
         let mut reader = self.open(track);
         let partition =
             reader.split(None).unwrap_or_else(|_| panic!("Failed to partition {:?}", self.path));
@@ -66,7 +67,7 @@ impl D4Reader for LocalD4Reader {
             })
             .collect();
 
-        QueryResult::new(
+        QueryResultEnv::new(
             query.clone(),
             self.path.clone(),
             track.map(|x| x.to_owned()),
@@ -75,7 +76,7 @@ impl D4Reader for LocalD4Reader {
         )
     }
 
-    fn mean(&self, regions: &[Query], track: Option<&str>) -> Vec<f64> {
+    fn mean(&self, regions: &[QueryEnv], track: Option<&str>) -> Vec<f64> {
         let mut reader = self.open(track);
         let result = Mean::create_task(
             &mut reader,
@@ -86,90 +87,6 @@ impl D4Reader for LocalD4Reader {
         let mut output = vec![];
         for item in &result {
             output.push(*item.output);
-        }
-        output
-    }
-
-    fn percentile(&self, regions: &[Query], track: Option<&str>, percentile: f64) -> Vec<f64> {
-        let mut output = vec![];
-        // Inner loop is _percentile_impl in the python code
-        for query in regions {
-            let hist = &self.histogram(&[query.clone()], 0, HIGH_DEPTH as i32, track)[0];
-            let above = hist.above as f64;
-            let below = hist.below as f64;
-            let (_chr, begin, end) = query.into();
-            let total = (end - begin) as f64;
-            if (percentile < (below / total) * 100.0)
-                || (100.0 - ((above / total) * 100.0) < percentile)
-            {
-                let data = self.query_track(query, track);
-                let mut low = data
-                    .results()
-                    .iter()
-                    .copied()
-                    .map(OrderedFloat)
-                    .min()
-                    .unwrap_or(OrderedFloat(0.0))
-                    .into_inner();
-                let mut high = data
-                    .results()
-                    .iter()
-                    .copied()
-                    .map(OrderedFloat)
-                    .max()
-                    .unwrap_or(OrderedFloat(0.0))
-                    .into_inner()
-                    + 1.0;
-                while high - low > 1.0 {
-                    let mid = (high + low) % 2.0;
-                    let p = data.results().iter().filter(|depth| **depth < mid).sum::<f64>()
-                        * 100.0
-                        / total;
-                    if p < percentile {
-                        low = mid;
-                    } else {
-                        high = mid;
-                    }
-                }
-                output.push(low);
-            } else {
-                let mut value = hist.first_value;
-                for prefix_sum in hist.prefix_sum.iter().skip(1) {
-                    if (*prefix_sum as f64 / total as f64) * 100.0 > percentile {
-                        output.push(value as f64);
-                        break;
-                    }
-                    value += 1;
-                }
-            }
-        }
-        output
-    }
-
-    fn histogram(
-        &self,
-        regions: &[Query],
-        min: i32,
-        max: i32,
-        track: Option<&str>,
-    ) -> Vec<Histogram> {
-        let mut reader = self.open(track);
-        let spec = regions
-            .iter()
-            .map(|r| r.into())
-            .map(|(chr, start, stop)| {
-                d4::task::Histogram::with_bin_range(chr, start, stop, min..max)
-            })
-            .collect();
-        let result =
-            TaskContext::new(&mut reader, spec).expect("Failed to compute histogram").run();
-        let mut output = vec![];
-        for item in &result {
-            // The result item is the (number of values less than min, an array with count for each value from min..max, then the number of values >= max)
-            let (below, hist, above) = item.output;
-            let hist: Vec<_> = hist.iter().enumerate().map(|(a, &b)| (a as i32 + min, b)).collect(); // This differs from the pyd4 api, which does not add `a + min` and just lets the "value" be 0
-            let hist = Histogram::new(hist, *below, *above);
-            output.push(hist);
         }
         output
     }
@@ -191,9 +108,120 @@ impl D4Reader for LocalD4Reader {
 impl LocalD4Reader {
     /// Open a [`LocalD4Reader`] for the specified track
     fn open(&self, track: Option<&str>) -> d4::D4TrackReader {
-        let track_spec =
-            if let Some(track) = track { [&self.path, track].join(":") } else { self.path.clone() };
-        d4::D4TrackReader::open(&track_spec)
-            .unwrap_or_else(|_| panic!("Failed to create local reader for: {:?}", self.path))
+        // TODO: D4TrackReader::open splits the path on `:` and takes anything to the right as a track specifier
+        // There should be a way to create a reader like remote with the optional track name
+        
+        let try_path = d4::D4TrackReader::open(&self.path)
+            .unwrap_or_else(|_| panic!("Could not create local reader for path: {:?}", self.path));
+        
+        if let Some(track) = track {
+            let track_spec = [&self.path, track].join(":");
+            d4::D4TrackReader::open(&track_spec)
+                .unwrap_or_else(|_| panic!("Failed to open track {:?} for path: {:?}", track, self.path))
+        } else {
+            try_path
+        }
+    }
+
+    /// Compute the percentile value for each input region
+    pub fn percentile(&self, regions: &[QueryEnv], track: Option<&str>, percentile: f64) -> Vec<f64> {
+        let mut output = vec![];
+        // Inner loop is _percentile_impl in the python code
+        for query in regions {
+            if percentile <= 0.0 {
+                output.push(0.0)
+            } else {
+                let data = self.query_track(query, track);
+                let min = data
+                    .results()
+                    .iter()
+                    .copied()
+                    .map(OrderedFloat)
+                    .min()
+                    .unwrap_or(OrderedFloat(0.0))
+                    .into_inner();
+                let max = data
+                    .results()
+                    .iter()
+                    .copied()
+                    .map(OrderedFloat)
+                    .max()
+                    .unwrap_or(OrderedFloat(0.0))
+                    .into_inner();
+                if min == max || percentile >= 100.0 {
+                    output.push(max);
+                } else {
+                    let hist = &self.histogram(&[query.clone()], 0, HIGH_DEPTH as i32, track)[0];
+                    let total = hist.total_count() as f64;
+                    let above = hist.above as f64;
+                    let below = hist.below as f64;
+                    if (percentile < (below / total) * 100.0)
+                        || (100.0 - ((above / total) * 100.0) < percentile) // Percentile lies outside the histogram
+                    {
+                        let mut low = min.clone();
+                        let mut high = max.clone() + 1.0;
+                        while high - low > 1.0 {
+                            let mid = (high + low) % 2.0;
+                            let p = data.results().iter().filter(|depth| **depth < mid).sum::<f64>()
+                                * 100.0
+                                / total;
+                            if p < percentile {
+                                low = mid;
+                            } else {
+                                high = mid;
+                            }
+                        }
+                        output.push(low);
+                    } else { // Percentile lies inside the histogram
+                        let mut value = hist.first_value;
+                        for prefix_sum in hist.prefix_sum.iter().skip(1) {
+                            if (*prefix_sum as f64 / total as f64) * 100.0 > percentile {
+                                output.push(value as f64);
+                                break;
+                            }
+                            value += 1;
+                        }
+                    }
+                }
+            }
+        }
+        output
+    }
+
+    /// histogram(regions, min, max)
+    ///
+    /// Returns the histogram of values in the given regions
+    ///
+    /// # Arguments
+    /// - `regions` - The list of regions we are asking
+    /// - `min` - The first bucket of the histogram
+    /// - `max` - The exclusive last bucket of this histogram (i.e. a max of 100 will mean the histogram goes up to 99)
+    pub fn histogram(
+        &self,
+        regions: &[QueryEnv],
+        min: i32,
+        max: i32,
+        track: Option<&str>,
+    ) -> Vec<HistogramEnv> {
+        let mut reader = self.open(track);
+        let spec = regions
+            .iter()
+            .map(|r| r.into())
+            .map(|(chr, start, stop)| {
+                d4::task::Histogram::with_bin_range(chr, start, stop, min..max)
+            })
+            .collect();
+        let result =
+            TaskContext::new(&mut reader, spec).expect("Failed to compute histogram").run();
+        let mut output = vec![];
+        for item in &result {
+            // The result item is the (number of values less than min, an array with count for each value from min..max, then the number of values >= max)
+            let (below, hist, above) = item.output;
+            // panic!("\nhist first counts: 0:{:?}, 1:{:?}, 2:{:?}, 3:{:?}", hist[0], hist[1], hist[2], hist[3]);
+            let hist: Vec<_> = hist.iter().enumerate().map(|(a, &b)| (a as i32 + min, b)).collect(); // TODO - This differs from the pyd4 api, which does not add `a + min` and just lets the "value" be 0
+            let hist = HistogramEnv::new(hist, *below, *above);
+            output.push(hist);
+        }
+        output
     }
 }

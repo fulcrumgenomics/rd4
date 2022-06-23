@@ -1,35 +1,73 @@
 # rd4
 
-## Install R Deps
+## Overview
 
-- R itself
-    - https://www.digitalocean.com/community/tutorials/how-to-install-r-on-ubuntu-20-04-quickstart
-- [`usethis`](https://usethis.r-lib.org/)
-    - `install.packages("usethis")`
-- [`devtools`](https://www.r-project.org/nosvn/pandoc/devtools.html)
-    - `install.packages("devtools")`
-- [`remotes`]()
-    - `install.packages("remotes")`
-- [`rextendr`]()
-    - `remotes::install_github("extendr/rextendr")`
+The Dense Depth Data Dump (D4) format provides fast analysis and compact storage of quantitative genomics datasets. `rd4` provides R bindings for reading and querying D4 files. For full details on the format, see Hou et al. (https://doi.org/10.1038/s43588-021-00085-0).
 
-## Create the template repo
+## Installation
 
-```R
-usethis::create_package("~/dev/rd4")
-usethis::use_testthat()
-setwd("~/dev/rd4")
-rextendr::use_extendr()
-rextendr::document()
+TBA
+
+## Usage
+
+```{r}
+library(rd4)
+browseVignettes("rd4")
 ```
 
-## Build and test things manually
+## For developers
+
+### R dependencies
+
+Consider using [renv](https://rstudio.github.io/renv/articles/renv.html) to isolate an R environment for `rd4` development.
+
+- [remotes](https://cran.r-project.org/web/packages/remotes/index.html)
+- [rextendr](https://github.com/extendr/rextendr)
+- [devtools](https://www.r-project.org/nosvn/pandoc/devtools.html)
+- [BiocCheck](https://bioconductor.org/packages/release/bioc/html/BiocCheck.html)
+
+### Developing an R package using Rust code
+
+Note: these steps were already done for `rd4` and don't need to be repeated by new developers.
+
+- [rextendr](https://extendr.github.io/rextendr/index.html) package
+- [Instructions](https://extendr.github.io/rextendr/articles/package.html) on setting up and developing a package
+
+
+### Build and test the package locally
+
+Build Rust code
+
+```bash
+cd src/rust/
+cargo build
+```
+
+Build and check R package within an R session
 
 ```R
-setwd("~/dev/rd4")
+# Set working directory to package root
+setwd(".")
+
+# Compile Rust code into R functions and auto-generate R documentation (yes, rextendr::document() does both)
 rextendr::document()
-devtools::load_all(".")
+
+# Load the package
+devtools::load_all()
+
+# Run tests
+devtools::test()
+
+# Run CRAN and/or Bioconductor checks
+devtools::check()
+BiocCheck::BiocCheck()
 ```
+
+
+### Add new Rust code
+
+[rextendr vignette](https://extendr.github.io/rextendr/articles/package.html)
+
 
 ### Test Rust code
 
@@ -38,20 +76,6 @@ cd src/rust/
 cargo test
 ```
 
-### Test R Code
+### Formatting of auto-generated R code
 
-```R
-# In development dir
-devtools::check() # Will check that the package as a whole is well formed
-devtools::test() # will run tets in `tests/testthat`
-```
-
-## Example
-
-```R
-devtools::load_all(".")
-file <- D4File::new("path_to_file.d4")
-result <- file$query("chr1", 100, 1000)
-result <- result$result()
-```
-
+Auto-generated R code produced by `rextendr` may not satisfy formatting requirements for Bioconductor or CRAN. Consider using an automatic formatter like [formatr](https://yihui.org/formatr/) to auto-format before submission, or the `Code -> Reformat Code` workflow in Rstudio.

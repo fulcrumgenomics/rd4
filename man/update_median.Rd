@@ -6,7 +6,7 @@
 over the region as a metadata attribute for each genomic range, returning a
 new \code{GRanges} object with updated metadata.}
 \usage{
-update_median(d4source, granges, ..., track = NA)
+update_median(d4source, granges, ..., track = NA, colname = NA)
 }
 \arguments{
 \item{d4source}{\code{D4Source} object}
@@ -16,11 +16,14 @@ update_median(d4source, granges, ..., track = NA)
 \item{...}{Not used for values, forces later arguments to bind by name}
 
 \item{track}{Track name. If omitted or NA, queries the first track.}
+
+\item{colname}{Name of new metadata column to add. If omitted: the name of
+the new metadata column will be \code{"median"} if no track was provided, or
+\code{"median_<track>"} if a track was provided.}
 }
 \value{
-New version of \code{granges} with region median added as the \code{'median'}
-metadata attribute for each genomic range. If a track is specified, the
-track name will be included in the metadata column name.
+New version of \code{granges} with region median added as a metadata
+attribute for each genomic range.
 }
 \description{
 For a set of genomic ranges in a \code{GRanges} object, adds the median value

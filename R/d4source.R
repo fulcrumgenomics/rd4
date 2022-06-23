@@ -182,9 +182,11 @@ mean.D4Source <-
 #' @param granges `GRanges` object containing genomic ranges of interest
 #' @param ... Not used for values, forces later arguments to bind by name
 #' @param track Track name. If omitted or NA, queries the first track.
-#' @return New version of `granges` with region mean added as the `'mean'`
-#' metadata attribute for each genomic range. If a track is specified, the
-#' track name will be included in the metadata column name.
+#' @param colname Name of new metadata column to add. If omitted: the name of 
+#' the new metadata column will be `"mean"` if no track was provided, or 
+#' `"mean_<track>"` if a track was provided.
+#' @return New version of `granges` with region mean added as a metadata 
+#' attribute for each genomic range. 
 #' @examples
 #' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
 #' granges <- GRanges(seqnames = c('chr1'), ranges = IRanges(1000:2000), 
@@ -195,7 +197,7 @@ mean.D4Source <-
 #' @importFrom wrapr stop_if_dot_args
 #' @export
 update_mean <-
-    function(d4source, granges, ..., track = NA) {
+    function(d4source, granges, ..., track = NA, colname = NA) {
         stop_if_dot_args(substitute(list(...)), "update_mean()")
         fn <- function(chr, start, end, track) {
             mean.D4Source(
@@ -206,7 +208,8 @@ update_mean <-
                 track = track
             )
         }
-        mcol_name <- if (is.na(track))
+        mcol_name <- if (!is.na(colname)) colname 
+        else if (is.na(track))
             "mean"
         else
             paste("mean", track, sep = "_")
@@ -256,9 +259,11 @@ median.D4Source <-
 #' @param granges `GRanges` object containing genomic ranges of interest
 #' @param ... Not used for values, forces later arguments to bind by name
 #' @param track Track name. If omitted or NA, queries the first track.
-#' @return New version of `granges` with region median added as the `'median'`
-#' metadata attribute for each genomic range. If a track is specified, the
-#' track name will be included in the metadata column name.
+#' @param colname Name of new metadata column to add. If omitted: the name of 
+#' the new metadata column will be `"median"` if no track was provided, or 
+#' `"median_<track>"` if a track was provided.
+#' @return New version of `granges` with region median added as a metadata 
+#' attribute for each genomic range. 
 #' @examples
 #' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
 #' granges <- GRanges(seqnames = c('chr1'), ranges = IRanges(1000:2000), 
@@ -269,7 +274,7 @@ median.D4Source <-
 #' @importFrom wrapr stop_if_dot_args
 #' @export
 update_median <-
-    function(d4source, granges, ..., track = NA) {
+    function(d4source, granges, ..., track = NA, colname = NA) {
         stop_if_dot_args(substitute(list(...)), "update_median()")
         fn <- function(chr, start, end, track) {
             median.D4Source(
@@ -280,7 +285,8 @@ update_median <-
                 track = track
             )
         }
-        mcol_name <- if (is.na(track))
+        mcol_name <- if(!is.na(colname)) colname
+        else if (is.na(track))
             "median"
         else
             paste("median", track, sep = "_")

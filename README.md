@@ -36,6 +36,15 @@ Note: these steps were already done for `rd4` and don't need to be repeated by n
 
 ### Build and test the package locally
 
+Build Rust code
+
+```bash
+cd src/rust/
+cargo build
+```
+
+Build and check R package within an R session
+
 ```R
 # Set working directory to package root
 setwd(".")
@@ -44,7 +53,10 @@ setwd(".")
 rextendr::document()
 
 # Load the package
-devtools::load_all(".")
+devtools::load_all()
+
+# Run tests
+devtools::test()
 
 # Run CRAN and/or Bioconductor checks
 devtools::check()

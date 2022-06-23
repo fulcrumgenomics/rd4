@@ -240,13 +240,23 @@ test_that("mean() works for a region with multiple non-empty tracks", {
 })
 
 test_that("update_mean() works for a Granges with several test intervals", {
-    granges <-
-        GRanges(seqnames = "chr3", ranges = IRanges(
-            start = c(37011631, 1e+06),
-            end = c(37011646, 2e+06)
-        ))
-    granges_updated <- update_mean(source_example2, granges)
-    expect_true(identical(mcols(granges_updated)$mean, list(2.125, 0)))
+  granges <-
+    GRanges(seqnames = "chr3", ranges = IRanges(
+      start = c(37011631, 1e+06),
+      end = c(37011646, 2e+06)
+    ))
+  granges_updated <- update_mean(source_example2, granges)
+  expect_true(identical(mcols(granges_updated)$mean, list(2.125, 0)))
+})
+
+test_that("update_mean() works with a user-specified metadata column name", {
+  granges <-
+    GRanges(seqnames = "chr3", ranges = IRanges(
+      start = c(37011631, 1e+06),
+      end = c(37011646, 2e+06)
+    ))
+  granges_updated <- update_mean(source_example2, granges, colname = "newcol")
+  expect_true(identical(mcols(granges_updated)$newcol, list(2.125, 0)))
 })
 
 test_that(
@@ -306,17 +316,31 @@ test_that("median() works for a region with multiple non-empty tracks", {
 })
 
 test_that(
-    "update_median() works for a Granges with several test intervals",
-    {
-        granges <-
-            GRanges(seqnames = "chr3", ranges = IRanges(
-                start = c(1e+06, 37011626),
-                end = c(2e+06, 37011640)
-            ))
-        granges_updated <-
-            update_median(source_example2, granges)
-        expect_true(identical(mcols(granges_updated)$median, list(0, 2)))
-    }
+  "update_median() works for a Granges with several test intervals",
+  {
+    granges <-
+      GRanges(seqnames = "chr3", ranges = IRanges(
+        start = c(1e+06, 37011626),
+        end = c(2e+06, 37011640)
+      ))
+    granges_updated <-
+      update_median(source_example2, granges)
+    expect_true(identical(mcols(granges_updated)$median, list(0, 2)))
+  }
+)
+
+test_that(
+  "update_median() works with a user-specified column name",
+  {
+    granges <-
+      GRanges(seqnames = "chr3", ranges = IRanges(
+        start = c(1e+06, 37011626),
+        end = c(2e+06, 37011640)
+      ))
+    granges_updated <-
+      update_median(source_example2, granges, colname = "newcol")
+    expect_true(identical(mcols(granges_updated)$newcol, list(0, 2)))
+  }
 )
 
 test_that(

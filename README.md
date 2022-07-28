@@ -6,7 +6,20 @@ The Dense Depth Data Dump (D4) format provides fast analysis and compact storage
 
 ## Installation
 
-TBA
+From Bioconductor **(pending acceptance)**:
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("rd4")
+```
+
+From GitHub:
+
+```{r}
+devtools::install_github("fulcrumgenomics/rd4")
+```
 
 ## Usage
 
@@ -28,7 +41,7 @@ Consider using [renv](https://rstudio.github.io/renv/articles/renv.html) to isol
 
 ### Developing an R package using Rust code
 
-Note: these steps were already done for `rd4` and don't need to be repeated by new developers.
+Note: these steps have already been done for `rd4` and don't need to be repeated by new developers.
 
 - [rextendr](https://extendr.github.io/rextendr/index.html) package
 - [Instructions](https://extendr.github.io/rextendr/articles/package.html) on setting up and developing a package

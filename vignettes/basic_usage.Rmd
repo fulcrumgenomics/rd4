@@ -1,11 +1,47 @@
 ---
-title: "rd4 Basic Usage"
-output: rmarkdown::html_vignette
+title: "rd4 basic usage"
+author: 
+  - Pamela Russell
+  - Seth Stadick
+package: rd4
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_depth: 2
 vignette: >
-  %\VignetteIndexEntry{Basic Usage}
+  %\VignetteIndexEntry{rd4 Basic Usage}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
+
+# Introduction
+
+The Dense Depth Data Dump (D4) format provides fast analysis and compact storage of quantitative genomics datasets, and is generally an efficient alternative to existing formats such as bedGraph and BigWig. It supports random access, multiple tracks (e.g. different data types or samples), and summary statistics on arbitrary genomic intervals. For full details on the format, see [Hou et al.](https://doi.org/10.1038/s43588-021-00085-0).
+
+`rd4` is the first package providing R bindings for reading and querying D4 files, and is similar in scope to the existing Python library [pyd4](https://github.com/38/pyd4). `rd4` provides functions to open a D4 file, explore its contents, and extract summary statistics and complete data for arbitrary genomic intervals. 
+
+Additionally, `rd4` enables seamless Bioconductor workflows through support for the standard genomic annotation package [GenomicRanges](https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html). Most query functions provide a batch version that can take in a `GRanges` object, run a query for each interval in the container, and populate interval metadata with query results.
+
+
+# Installation
+
+## From Bioconductor
+
+```{r eval = FALSE}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("rd4")
+```
+
+## From GitHub
+
+```{r eval = FALSE}
+devtools::install_github("fulcrumgenomics/rd4")
+```
+
+
+# Package usage
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(

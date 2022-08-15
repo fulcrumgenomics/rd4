@@ -21,7 +21,8 @@ Suggests:
     knitr,
     rmarkdown,
     data.table,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    BiocStyle
 SystemRequirements: GNU make
 biocViews: DataRepresentation, DataImport, Sequencing, Coverage
 VignetteBuilder: knitr

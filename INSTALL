@@ -1,0 +1,17 @@
+# How to install system requirements
+
+## Gnu make
+
+Download the tarball from the [GNU ftp](http://ftp.gnu.org/gnu/make/) and follow instructions in the `INSTALL` file.
+
+## Rust and Cargo
+
+### Linux, macOS, or other Unix-like operating system
+
+The following command installs Rust and Cargo.
+
+`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+### Windows
+
+Download and run [rustup-init.exe](https://static.rust-lang.org/rustup/dist/i686-pc-windows-gnu/rustup-init.exe).

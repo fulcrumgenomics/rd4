@@ -23,6 +23,9 @@ Suggests:
     data.table,
     testthat (>= 3.0.0),
     BiocStyle
-SystemRequirements: GNU make
+SystemRequirements: 
+    GNU make,
+    Rust,
+    Cargo
 biocViews: DataRepresentation, DataImport, Sequencing, Coverage
 VignetteBuilder: knitr

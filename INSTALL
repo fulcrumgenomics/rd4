@@ -6,9 +6,18 @@ Download the tarball from the [GNU ftp](http://ftp.gnu.org/gnu/make/) and follow
 
 ## Rust and Cargo
 
-### Linux, macOS, or other Unix-like operating system
+### Ubuntu/Debian-based Linux system
 
-The following command installs Rust and Cargo.
+`sudo apt-get install rustc cargo`
+
+### RPM-based Linux system
+
+```
+yum update -y
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+### Mac OS
 
 `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
 

@@ -1,6 +1,6 @@
 Package: rd4
 Title: R Bindings for Reading and Querying Dense Depth Data Dump (D4) Files
-Version: 0.99.0
+Version: 0.99.1
 Authors@R: c(
         person("Pamela", "Russell", , 
                "pam@fulcrumgenomics.com", role = c("aut", "cre")), 

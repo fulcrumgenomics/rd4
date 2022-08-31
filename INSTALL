@@ -1,9 +1,5 @@
 # How to install system requirements
 
-## Gnu make
-
-Download the tarball from the [GNU ftp](http://ftp.gnu.org/gnu/make/) and follow instructions in the `INSTALL` file.
-
 ## Rust and Cargo
 
 ### Ubuntu/Debian-based Linux system
@@ -12,9 +8,18 @@ Download the tarball from the [GNU ftp](http://ftp.gnu.org/gnu/make/) and follow
 
 ### RPM-based Linux system
 
+#### CentOS
+
 ```
-yum update -y
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+sudo yum install centos-release-scl
+sudo yum install rust-toolset-7
+```
+
+#### RedHat
+
+```
+sudo yum-config-manager --enable rhel-server-rhscl-7-rpms
+sudo yum install rust-toolset-7
 ```
 
 ### Mac OS

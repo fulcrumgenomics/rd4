@@ -1,4 +1,4 @@
-result_example2 <- query(source_example2, "chr3", 37011630, 37011640)
+result_example2 <- query(source_example2, "chr3", 37011631, 37011640)
 
 test_that("results is the correct vector of values", {
     expect_equal(result_example2$results, c(rep(0, 2), rep(2, 8)))

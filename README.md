@@ -6,19 +6,11 @@ The Dense Depth Data Dump (D4) format provides fast analysis and compact storage
 
 ## Installation
 
-From Bioconductor **(pending acceptance)**:
-
 ```{r}
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
 BiocManager::install("rd4")
-```
-
-From GitHub:
-
-```{r}
-devtools::install_github("fulcrumgenomics/rd4")
 ```
 
 ## Usage

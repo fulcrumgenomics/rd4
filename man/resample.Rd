@@ -22,9 +22,9 @@ resample(
 
 \item{chr}{Chromosome/contig name}
 
-\item{start}{0-based start position}
+\item{start}{1-based start position}
 
-\item{end}{0-based exclusive end position}
+\item{end}{1-based inclusive end position}
 
 \item{method}{Summary statistic for the data in each bin; one of 'mean' or
 'median'}

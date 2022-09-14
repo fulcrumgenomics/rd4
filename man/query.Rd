@@ -11,15 +11,14 @@ query(d4source, chr, start, end, ..., minus_strand = FALSE, track = NA)
 
 \item{chr}{Chromosome/contig name}
 
-\item{start}{0-based start position}
+\item{start}{1-based start position}
 
-\item{end}{0-based exclusive end position}
+\item{end}{1-based inclusive end position}
 
 \item{...}{Not used for values, forces later arguments to bind by name}
 
 \item{minus_strand}{If TRUE, vector of position scores will read in the
-minus strand direction from
-\code{end - 1} to \code{start}.}
+minus strand direction from \code{end} to \code{start}.}
 
 \item{track}{Track name. If omitted or NA, queries the first track.}
 }

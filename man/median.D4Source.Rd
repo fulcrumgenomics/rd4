@@ -16,9 +16,9 @@ median.D4Source(x, na.rm = FALSE, ..., chr, start, end, track = NA)
 
 \item{chr}{Chromosome/contig name}
 
-\item{start}{0-based start position}
+\item{start}{1-based start position}
 
-\item{end}{0-based exclusive end position}
+\item{end}{1-based inclusive end position}
 
 \item{track}{Track name. If omitted or NA, queries the first track.}
 }

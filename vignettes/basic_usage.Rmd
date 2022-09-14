@@ -25,19 +25,11 @@ Additionally, `rd4` enables seamless Bioconductor workflows through support for 
 
 # Installation
 
-## From Bioconductor
-
 ```{r eval = FALSE}
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
 BiocManager::install("rd4")
-```
-
-## From GitHub
-
-```{r eval = FALSE}
-devtools::install_github("fulcrumgenomics/rd4")
 ```
 
 
@@ -56,8 +48,8 @@ knitr::opts_chunk$set(
 
 ```{r setup}
 suppressPackageStartupMessages(library(rd4))
-suppressPackageStartupMessages(library(data.table))
 suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(GenomicRanges))
 ```
 
 ## Locate and load the example D4 file
@@ -69,11 +61,10 @@ d4source <- D4Source(d4_path)
 
 ## Explore some basic features of the data
 
-Chromosome names and lengths
+Sequence information
 
 ```{r chrs}
-chrs <- get_chroms(d4source)
-head(rbindlist(chrs))
+seqinfo(d4source)
 ```
 
 Track names
@@ -84,7 +75,7 @@ get_tracks(d4source)
 
 ## Explore data values across a genomic region
 
-Region coordinates are 0-based, half-open.
+Coordinates in the D4 format are 0-based end exclusive, while all coordinates in `rd4` are 1-based, end inclusive.
 
 ### Summary statistics
 
@@ -144,11 +135,15 @@ query_resample$bin_size
 
 ## Working with `GenomicRanges` `Granges` objects
 
-[GenomicRanges](https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html) is the [Bioconductor](https://bioconductor.org/) package for representation and manipulation of genomic intervals. `rd4` provides methods to batch query a D4 file with all intervals in a `GRanges` object, updating the metadata for each genomic range with the values from the D4 data.
+[GenomicRanges](https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html) is the [Bioconductor](https://bioconductor.org/) package for representation and manipulation of genomic intervals. 
+
+### Querying a D4 file with intervals in a `GRanges` object
+
+`rd4` provides methods to batch query a D4 file with all intervals in a `GRanges` object, updating the metadata for each genomic range with the values from the D4 data.
 
 Each method returns a new `GRanges` object with updated metadata.
 
-```{r granges}
+```{r granges_query}
 # Manually construct a GRanges object with the above genomic interval and one 
 # other interval
 # `IRanges` coordinates are 1-based inclusive
@@ -159,19 +154,37 @@ granges <- GRanges(
 )
 
 # Add summary statistics as interval metadata
-granges <- update_mean(d4source, granges)
-granges <- update_median(d4source, granges)
-granges <- update_percentile(d4source, granges, 25)
-granges <- update_percentile(d4source, granges, 50)
-granges <- update_percentile(d4source, granges, 75)
+granges <- update_with_mean(granges, d4source)
+granges <- update_with_median(granges, d4source)
+granges <- update_with_percentile(granges, d4source, 25)
+granges <- update_with_percentile(granges, d4source, 50)
+granges <- update_with_percentile(granges, d4source, 75)
 
 # View populated metadata
 print(granges)
 kable(mcols(granges))
 
 # Add position-level values as interval metadata
-granges <- update_query_results(d4source, granges)
+granges <- update_with_query_results(granges, d4source)
 lapply(mcols(granges)$query_results, function(result) result$results)
+```
+
+### Exporting data profile from a D4 file to a `GRanges` object
+
+The `to_granges()` function converts data in a `D4Source` object to a `GRanges` object. The data values are stored in a metadata column.
+
+Note: if data values are continuous or vary a lot, for large regions this function may be slow and may return a very large `GRanges` object. It is recommended to use it only when a `GRanges` object is required to plug into other Bioconductor workflows.
+
+Whole genome:
+
+```{r granges_export_genome}
+to_granges(d4source)
+```
+
+Specific region:
+
+```{r granges_export_region}
+to_granges(d4source, chr = "chr1", start = 17027500, end = 17027600)
 ```
 
 ## Session info

@@ -11,9 +11,9 @@ percentile(d4source, chr, start, end, percentile, ..., track = NA)
 
 \item{chr}{Chromosome/contig name}
 
-\item{start}{0-based start position}
+\item{start}{1-based start position}
 
-\item{end}{0-based exclusive end position}
+\item{end}{1-based inclusive end position}
 
 \item{percentile}{Percentile between 0 and 100. Example: percentile 0 is
 the minimum data value, 50 is the median and 100 is the maximum.}

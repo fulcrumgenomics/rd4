@@ -2,8 +2,7 @@
 % Please edit documentation in R/d4source.R
 \name{resample}
 \alias{resample}
-\title{Bin across the given region, populating each bin with a summary of the
-original data values in the bin region}
+\title{Resample a D4 file}
 \usage{
 resample(
   d4source,

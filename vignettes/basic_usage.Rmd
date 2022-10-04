@@ -20,7 +20,7 @@ The Dense Depth Data Dump (D4) format provides fast analysis and compact storage
 
 `rd4` is the first package providing R bindings for reading and querying D4 files, and is similar in scope to the existing Python library [pyd4](https://github.com/38/pyd4). `rd4` provides functions to open a D4 file, explore its contents, and extract summary statistics and complete data for arbitrary genomic intervals. 
 
-Additionally, `rd4` enables seamless Bioconductor workflows through support for the standard genomic annotation package [GenomicRanges](https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html). Most query functions provide a batch version that can take in a `GRanges` object, run a query for each interval in the container, and populate interval metadata with query results.
+Additionally, `rd4` enables seamless Bioconductor workflows through support for the standard genomic annotation package [GenomicRanges](https://bioconductor.org/packages/release/bioc/html/GenomicRanges.html). D4 files can be queried and exported using functions that take in and return `GRanges` objects.
 
 
 # Installation
@@ -61,6 +61,12 @@ d4source <- D4Source(d4_path)
 
 ## Explore some basic features of the data
 
+Print object summary
+
+```{r print}
+print(d4source)
+```
+
 Sequence information
 
 ```{r chrs}
@@ -82,7 +88,7 @@ Coordinates in the D4 format are 0-based end exclusive, while all coordinates in
 For these and below functions, omitting the track name parameter causes the first track to be queried.
 
 ```{r summary_notrack}
-mean(d4source, "chr1", 17027500, 17027600)
+mean(d4source, chr = "chr1", start = 17027500, end = 17027600)
 median(d4source, chr = "chr1", start = 17027500, end = 17027600)
 percentile(d4source, "chr1", 17027500, 17027600, 50)
 ```
@@ -90,7 +96,7 @@ percentile(d4source, "chr1", 17027500, 17027600, 50)
 Query a specific track:
 
 ```{r summary_track}
-mean(d4source, "chr3", 0, 100000000, track = "track2")
+mean(d4source, chr = "chr3", start = 0, end = 100000000, track = "track2")
 median(d4source, chr = "chr3", start = 0, end = 100000000, track = "track2")
 percentile(d4source, "chr3", 0, 100000000, 99, track = "track2")
 percentile(d4source, "chr3", 0, 100000000, 99.999, track = "track2")
@@ -169,22 +175,30 @@ granges <- update_with_query_results(granges, d4source)
 lapply(mcols(granges)$query_results, function(result) result$results)
 ```
 
-### Exporting data profile from a D4 file to a `GRanges` object
+### Converting data profile from a D4 file to a `GRanges` object
 
-The `to_granges()` function converts data in a `D4Source` object to a `GRanges` object. The data values are stored in a metadata column.
+The `import()` function converts data in a `D4Source` object to a `GRanges` object. The data values are stored in a metadata column.
+
+The function name and some arguments are analogous to the `import.*()` functions in the [rtracklayer](https://www.bioconductor.org/packages/release/bioc/html/rtracklayer.html) package. As such, specific query region(s) of interest can be supplied as a `GRanges` or `GRangesList` object via the `which` argument, or the whole genome can be queried by omitting `which`.
 
 Note: if data values are continuous or vary a lot, for large regions this function may be slow and may return a very large `GRanges` object. It is recommended to use it only when a `GRanges` object is required to plug into other Bioconductor workflows.
 
 Whole genome:
 
 ```{r granges_export_genome}
-to_granges(d4source)
+import(d4source)
 ```
 
 Specific region:
 
 ```{r granges_export_region}
-to_granges(d4source, chr = "chr1", start = 17027500, end = 17027600)
+import(
+  d4source, 
+  which = GRanges(
+    seqnames = "chr1", 
+    IRanges(start = c(17027501, 17027701), end = c(17027600, 17027800))
+  )
+)
 ```
 
 ## Session info

@@ -2,9 +2,7 @@
 % Please edit documentation in R/d4source.R
 \name{update_with_query_results}
 \alias{update_with_query_results}
-\title{For a set of genomic ranges in a \code{GRanges} object, extracts each region from
-the D4 file and adds the query result as a metadata attribute for each
-genomic range, returning a new \code{GRanges} object with updated metadata.}
+\title{Add D4 query results to a \code{GRanges} object}
 \usage{
 update_with_query_results(granges, d4source, ..., track = NA)
 }

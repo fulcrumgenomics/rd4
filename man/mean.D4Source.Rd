@@ -2,12 +2,14 @@
 % Please edit documentation in R/d4source.R
 \name{mean.D4Source}
 \alias{mean.D4Source}
-\title{Returns the mean data value over the given region}
+\title{Get the mean data value over the given region}
 \usage{
-mean.D4Source(x, chr, start, end, ..., track = NA)
+mean.D4Source(x, ..., chr, start, end, track = NA)
 }
 \arguments{
 \item{x}{\code{D4Source} object}
+
+\item{...}{Not used for values, forces later arguments to bind by name}
 
 \item{chr}{Chromosome/contig name}
 
@@ -15,18 +17,16 @@ mean.D4Source(x, chr, start, end, ..., track = NA)
 
 \item{end}{1-based inclusive end position}
 
-\item{...}{Not used for values, forces later arguments to bind by name}
-
 \item{track}{Track name. If omitted or NA, queries the first track.}
 }
 \value{
 Mean data value
 }
 \description{
-Returns the mean data value over the given region
+Get the mean data value over the given region
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-mean(d4source, 'chr1', 1000, 2000)
+mean(d4source, chr = 'chr1', start = 1000, end = 2000)
 
 }

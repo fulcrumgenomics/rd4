@@ -2,7 +2,7 @@
 % Please edit documentation in R/d4source.R
 \name{percentile}
 \alias{percentile}
-\title{Returns the data value at the given percentile for the given region}
+\title{Get the data value at the given percentile for the given region}
 \usage{
 percentile(d4source, chr, start, end, percentile, ..., track = NA)
 }
@@ -26,7 +26,7 @@ the minimum data value, 50 is the median and 100 is the maximum.}
 Data value at the given percentile
 }
 \description{
-Returns the data value at the given percentile for the given region
+Get the data value at the given percentile for the given region
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

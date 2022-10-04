@@ -33,26 +33,28 @@ D4Source <- function(path) {
   d4
 }
 
-#' Prints information about a `D4Source` object
+#' Print information about a `D4Source` object
 #'
-#' @param d4source `D4Source` object
+#' @param x `D4Source` object
+#' @param ... further arguments passed to or from other methods
 #' @return (Invisibly) the string that was printed
 #' @import GenomeInfoDb
-print.D4Source <- function(d4source) {
-  seqs <- seqinfo(d4source)
+#' @export
+print.D4Source <- function(x, ...) {
+  seqs <- seqinfo(x)
   description <- paste(
     "<D4Source object>",
-    paste("Source file:", get_source(d4source)),
+    paste("Source file:", get_source(x)),
     paste("Number of chromosomes:", length(seqs)),
     paste("Total chromosome length:", sum(seqlengths(seqs))),
-    paste("Number of tracks:", length(get_tracks(d4source))),
+    paste("Number of tracks:", length(get_tracks(x))),
     sep = "\n"
   )
   cat(description)
   invisible(description)
 }
 
-#' Returns the path to the source D4 file
+#' Get the path to a source D4 file
 #'
 #' @param d4source `D4Source` object
 #' @return The path to the source D4 file
@@ -73,7 +75,7 @@ setMethod("seqinfo", "D4Source", function(x) {
   GenomeInfoDb::Seqinfo(names, seqlengths = lengths)
 })
 
-#' Returns the names of tracks in the source D4 file
+#' Get the names of tracks in a source D4 file
 #'
 #' @param d4source `D4Source` object
 #' @return Vector of track names
@@ -86,7 +88,7 @@ get_tracks <- function(d4source) {
   d4source$get_tracks()
 }
 
-#' Extracts the given region from the D4 file
+#' Extract a region from a D4 file
 #'
 #' @param d4source `D4Source` object
 #' @param chr Chromosome/contig name
@@ -110,16 +112,13 @@ query <-
       d4source$query(chr, start - 1, end, track), minus_strand = minus_strand)
   }
 
-#' Returns a `GRanges` object representing the data in a D4 track.
+#' Get a `GRanges` object representing the data in a D4 track
 #' 
 #' The returned `GRanges` contains ranges covering the entire requested region.
 #' Runs of equal data values are collapsed to single ranges. Data values
 #' are stored in a metadata column.
 #' 
-#' Note: if data values are continuous or vary a lot, for large regions this 
-#' function may be slow and may return a very large `GRanges` object. In that 
-#' case, consider working with smaller regions. Use this function when a 
-#' `GRanges` object is required for other Bioconductor workflows.
+#' Not exported; is a helper for `import.D4Source()`.
 #' 
 #' @param d4source `D4Source` object
 #' @param ... Not used for values, forces later arguments to bind by name
@@ -129,7 +128,7 @@ query <-
 #' @param end 1-based inclusive end position. If omitted, queries the entire 
 #' chromosome.
 #' @param track Track name. If omitted or NA, queries the first track.
-#' @param colname Name of metadata column in which to store 
+#' @param colname Name of metadata column in which to store data values
 #' @return `GRanges` object with metadata column storing data values 
 #' @examples 
 #' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
@@ -143,7 +142,7 @@ query <-
 #' # Entire genome
 #' to_granges(d4source)
 #' @importFrom wrapr stop_if_dot_args
-#' @export
+#' @noRd
 to_granges <- function(d4source, ..., chr = NA, start = NA, end = NA, track = NA, colname = "score") {
   
   if (is.na(chr)) {
@@ -203,6 +202,81 @@ to_granges <- function(d4source, ..., chr = NA, start = NA, end = NA, track = NA
   }
 }
 
+#' Get a `GRanges` object representing the data in a D4 track
+#' 
+#' Analogous to the `import.*()` methods provided in 
+#' [rtracklayer](https://www.bioconductor.org/packages/release/bioc/html/rtracklayer.html).
+#' 
+#' The returned `GRanges` contains ranges covering the entire requested 
+#' region(s). Runs of equal data values are collapsed to single ranges. Data 
+#' values are stored in a metadata column.
+#' 
+#' Note: if data values are continuous or vary a lot, for large regions this 
+#' function may be slow and may return a very large `GRanges` object. In that 
+#' case, consider working with smaller regions. Use this function when a 
+#' `GRanges` object is required for other Bioconductor workflows.
+#' 
+#' @param d4source `D4Source` object
+#' @param ... Not used for values, forces later arguments to bind by name
+#' @param which `GRanges` or `GRangesList` object defining the intervals to 
+#' query. Used only for chromosome, start and end coordinates. Strand and other
+#' metadata are ignored. Returned object is of type `GRanges` but likely will
+#' not contain the same intervals as `which` as it is defined in terms of runs
+#' of data values (see `Details`).. If omitted or NULL, queries the 
+#' entire genome.
+#' @param track Track name. If omitted or NA, queries the first track.
+#' @param colname Name of metadata column in which to store data values
+#' @return `GRanges` object with metadata column storing data values 
+#' @import GenomicRanges
+#' @import IRanges
+#' @importFrom wrapr stop_if_dot_args
+#' @examples 
+#' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
+#' 
+#' # Specific region
+#' import(
+#'   d4source, 
+#'   which = GenomicRanges::GRanges(
+#'     seqnames = "chr1", 
+#'     IRanges::IRanges(start = c(17027501, 17027701), end = c(17027600, 17027800))
+#'   )
+#' )
+#' 
+#' # Entire genome
+#' import(d4source)
+#' @export
+import <- function(
+    d4source, ..., which = NULL, track = NA, colname = "score"
+) {
+  if (is.null(which)) {
+    to_granges(d4source, track = track, colname = colname)
+  } else {
+    ranges_reduced <- tryCatch({
+      reduce(unlist(which))  # GRangesList
+    }, error = function(x) {
+      reduce(which)  # GRanges
+    })
+    do.call(
+      c, 
+      Map(
+        function(range_idx) {
+          to_granges(
+            d4source, 
+            chr = as.character(seqnames(ranges_reduced[range_idx])), 
+            start = start(ranges_reduced[range_idx]), 
+            end = end(ranges_reduced[range_idx]), 
+            track = track, 
+            colname = colname
+          )
+        }, 
+        seq_along(ranges_reduced)
+      )
+    )
+  }
+}
+
+#' Add D4 query results to a `GRanges` object
+#'
 #' For a set of genomic ranges in a `GRanges` object, extracts each region from
 #' the D4 file and adds the query result as a metadata attribute for each
 #' genomic range, returning a new `GRanges` object with updated metadata.
@@ -261,27 +335,29 @@ update_with_query_results <-
     
   }
 
-#' Returns the mean data value over the given region
+#' Get the mean data value over the given region
 #'
 #' @param x `D4Source` object
+#' @param ... Not used for values, forces later arguments to bind by name
 #' @param chr Chromosome/contig name
 #' @param start 1-based start position
 #' @param end 1-based inclusive end position
-#' @param ... Not used for values, forces later arguments to bind by name
 #' @param track Track name. If omitted or NA, queries the first track.
 #' @return Mean data value
 #' @examples
 #' d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))
-#' mean(d4source, 'chr1', 1000, 2000)
+#' mean(d4source, chr = 'chr1', start = 1000, end = 2000)
 #'
 #' @importFrom wrapr stop_if_dot_args
-#' @export
+#' @exportS3Method base::mean
 mean.D4Source <-
-  function(x, chr, start, end, ..., track = NA) {
+  function(x, ..., chr, start, end, track = NA) {
     stop_if_dot_args(substitute(list(...)), "mean()")
     x$mean(chr, start - 1, end, track)
   }
 
+#' Add mean D4 data values to a `GRanges` object
+#'
 #' For a set of genomic ranges in a `GRanges` object, adds the mean value over
 #' the region as a metadata attribute for each genomic range, returning a new
 #' `GRanges` object with updated metadata.
@@ -338,7 +414,7 @@ update_with_mean <-
     
   }
 
-#' Returns the median data value over the given region
+#' Get the median data value over the given region
 #'
 #' @param x `D4Source` object
 #' @param na.rm Ignored; included in signature only to enable preservation of
@@ -361,6 +437,8 @@ median.D4Source <-
     x$median(chr, start - 1, end, track)
   }
 
+#' Add median D4 data values to a `GRanges` object
+#'
 #' For a set of genomic ranges in a `GRanges` object, adds the median value
 #' over the region as a metadata attribute for each genomic range, returning a
 #' new `GRanges` object with updated metadata.
@@ -417,7 +495,7 @@ update_with_median <-
     
   }
 
-#' Returns the data value at the given percentile for the given region
+#' Get the data value at the given percentile for the given region
 #'
 #' @param d4source `D4Source` object
 #' @param chr Chromosome/contig name
@@ -440,6 +518,8 @@ percentile <-
     d4source$percentile(chr, start - 1, end, track, percentile)
   }
 
+#' Add percentiles of D4 data values to a `GRanges` object
+#'
 #' For a set of genomic ranges in a `GRanges` object, adds the percentile value
 #' over the region as a metadata attribute for each genomic range, returning a
 #' new `GRanges` object with updated metadata.
@@ -502,6 +582,8 @@ update_with_percentile <-
   }
 
 
+#' Resample a D4 file
+#' 
 #' Bin across the given region, populating each bin with a summary of the
 #' original data values in the bin region
 #'

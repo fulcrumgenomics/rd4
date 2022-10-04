@@ -2,7 +2,7 @@
 % Please edit documentation in R/d4source.R
 \name{query}
 \alias{query}
-\title{Extracts the given region from the D4 file}
+\title{Extract a region from a D4 file}
 \usage{
 query(d4source, chr, start, end, ..., minus_strand = FALSE, track = NA)
 }
@@ -26,7 +26,7 @@ minus strand direction from \code{end} to \code{start}.}
 Query result as a list
 }
 \description{
-Extracts the given region from the D4 file
+Extract a region from a D4 file
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

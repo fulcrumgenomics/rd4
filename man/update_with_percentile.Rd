@@ -2,9 +2,7 @@
 % Please edit documentation in R/d4source.R
 \name{update_with_percentile}
 \alias{update_with_percentile}
-\title{For a set of genomic ranges in a \code{GRanges} object, adds the percentile value
-over the region as a metadata attribute for each genomic range, returning a
-new \code{GRanges} object with updated metadata.}
+\title{Add percentiles of D4 data values to a \code{GRanges} object}
 \usage{
 update_with_percentile(granges, d4source, percentile, ..., track = NA)
 }

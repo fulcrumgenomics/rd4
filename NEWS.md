@@ -1,3 +1,9 @@
+# rd4 0.99.4
+
+* Correctly export `print()` method for `D4Source` class
+* Replace `to_granges()` with `import()` function on `D4Source` objects, analogous to `import.*()` methods in the `rtracklayer` package
+* Reformat function documentation
+
 # rd4 0.99.3
 
 * Remove instructions to install from GitHub

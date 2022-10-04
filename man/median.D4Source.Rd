@@ -2,7 +2,7 @@
 % Please edit documentation in R/d4source.R
 \name{median.D4Source}
 \alias{median.D4Source}
-\title{Returns the median data value over the given region}
+\title{Get the median data value over the given region}
 \usage{
 median.D4Source(x, na.rm = FALSE, ..., chr, start, end, track = NA)
 }
@@ -26,7 +26,7 @@ median.D4Source(x, na.rm = FALSE, ..., chr, start, end, track = NA)
 Median data value
 }
 \description{
-Returns the median data value over the given region
+Get the median data value over the given region
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

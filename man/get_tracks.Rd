@@ -2,7 +2,7 @@
 % Please edit documentation in R/d4source.R
 \name{get_tracks}
 \alias{get_tracks}
-\title{Returns the names of tracks in the source D4 file}
+\title{Get the names of tracks in a source D4 file}
 \usage{
 get_tracks(d4source)
 }
@@ -13,7 +13,7 @@ get_tracks(d4source)
 Vector of track names
 }
 \description{
-Returns the names of tracks in the source D4 file
+Get the names of tracks in a source D4 file
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

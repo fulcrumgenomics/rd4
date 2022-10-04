@@ -2,9 +2,7 @@
 % Please edit documentation in R/d4source.R
 \name{update_with_mean}
 \alias{update_with_mean}
-\title{For a set of genomic ranges in a \code{GRanges} object, adds the mean value over
-the region as a metadata attribute for each genomic range, returning a new
-\code{GRanges} object with updated metadata.}
+\title{Add mean D4 data values to a \code{GRanges} object}
 \usage{
 update_with_mean(granges, d4source, ..., track = NA, colname = NA)
 }

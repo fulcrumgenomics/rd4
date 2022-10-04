@@ -2,7 +2,7 @@
 % Please edit documentation in R/d4source.R
 \name{get_source}
 \alias{get_source}
-\title{Returns the path to the source D4 file}
+\title{Get the path to a source D4 file}
 \usage{
 get_source(d4source)
 }
@@ -13,7 +13,7 @@ get_source(d4source)
 The path to the source D4 file
 }
 \description{
-Returns the path to the source D4 file
+Get the path to a source D4 file
 }
 \examples{
 d4source <- D4Source(system.file('extdata', 'example.d4', package = 'rd4'))

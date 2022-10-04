@@ -2,16 +2,18 @@
 % Please edit documentation in R/d4source.R
 \name{print.D4Source}
 \alias{print.D4Source}
-\title{Prints information about a \code{D4Source} object}
+\title{Print information about a \code{D4Source} object}
 \usage{
-\method{print}{D4Source}(d4source)
+\method{print}{D4Source}(x, ...)
 }
 \arguments{
-\item{d4source}{\code{D4Source} object}
+\item{x}{\code{D4Source} object}
+
+\item{...}{further arguments passed to or from other methods}
 }
 \value{
 (Invisibly) the string that was printed
 }
 \description{
-Prints information about a \code{D4Source} object
+Print information about a \code{D4Source} object
 }

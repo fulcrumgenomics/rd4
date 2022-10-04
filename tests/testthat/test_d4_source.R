@@ -16,6 +16,20 @@ test_that("get_source() returns the original data path", {
   )
 })
 
+test_that("print() works for a D4Source object", {
+  expect_equal(
+    print(source_example1),
+    paste(
+      "<D4Source object>",
+      paste("Source file:", testthat::test_path("testdata", "example1.d4")),
+      "Number of chromosomes: 25",
+      "Total chromosome length: 3088286401",
+      "Number of tracks: 1",
+      sep = "\n"
+    )
+  )
+})
+
 test_that(
   "seqinfo() returns the full sequence dictionary for files with one or
     multiple tracks",
@@ -176,22 +190,6 @@ test_that("to_granges() raises warning for only one of start/end provided", {
   expect_warning(to_granges(source_multitrack, chr = "chrM", end = 100))
 })
 
-test_that("to_granges() works for whole genome", {
-  granges <- to_granges(source_multitrack)
-  num_ranges <- length(granges)
-  # Chromosome names
-  expect_true(seqnames(granges)[1] == "chr1")
-  expect_true(seqnames(granges)[num_ranges] == "chrM")
-  # Interval coordinates
-  expect_equal(ranges(granges)[1], IRanges(start = 1, end = 17027552))
-  expect_equal(ranges(granges)[2], IRanges(start = 17027553, 17027562))
-  expect_equal(ranges(granges)[num_ranges], IRanges(start = 1, end = 16569))
-  # Score values
-  expect_equal(mcols(granges)$score[1], 0)
-  expect_equal(mcols(granges)$score[2], 1)
-  expect_equal(mcols(granges)$score[num_ranges], 0)
-})
-
 test_that("to_granges() works for whole chromosome", {
   granges <- to_granges(source_multitrack, chr = "chr1")
   num_ranges <- length(granges)
@@ -234,6 +232,87 @@ test_that("to_granges() works for specific track", {
 
 test_that("to_granges() works with custom metadata column name", {
   granges <- to_granges(source_multitrack, chr = "chrM", colname = "new_column")
+  expect_true(all(mcols(granges) == data.frame(new_column = 0)))
+})
+
+test_that("import() works for whole genome", {
+  granges <- import(source_multitrack)
+  num_ranges <- length(granges)
+  # Chromosome names
+  expect_true(seqnames(granges)[1] == "chr1")
+  expect_true(seqnames(granges)[num_ranges] == "chrM")
+  # Interval coordinates
+  expect_equal(ranges(granges)[1], IRanges(start = 1, end = 17027552))
+  expect_equal(ranges(granges)[2], IRanges(start = 17027553, 17027562))
+  expect_equal(ranges(granges)[num_ranges], IRanges(start = 1, end = 16569))
+  # Score values
+  expect_equal(mcols(granges)$score[1], 0)
+  expect_equal(mcols(granges)$score[2], 1)
+  expect_equal(mcols(granges)$score[num_ranges], 0)
+})
+
+test_that("import() works for one interval", {
+  granges <- import(
+    source_multitrack, 
+    which = GRanges(
+      seqnames = "chr1", 
+      ranges = IRanges(start = 17027561, end = 17027564)))
+  expect_equal(ranges(granges)[1], IRanges(start = 17027561, end = 17027562))
+  expect_equal(ranges(granges)[2], IRanges(start = 17027563, end = 17027564))
+  expect_equal(mcols(granges)$score[1], 1)
+  expect_equal(mcols(granges)$score[2], 2)
+})
+
+test_that("import() simplifies overlapping query intervals", {
+  granges <- import(
+    source_multitrack, 
+    which = GRanges(
+      seqnames = "chr1", 
+      ranges = IRanges(
+        start = c(17027561, 17027562), 
+        end = c(17027564, 17027563)))
+    )
+  expect_equal(ranges(granges)[1], IRanges(start = 17027561, end = 17027562))
+  expect_equal(ranges(granges)[2], IRanges(start = 17027563, end = 17027564))
+  expect_equal(mcols(granges)$score[1], 1)
+  expect_equal(mcols(granges)$score[2], 2)
+})
+
+test_that("import() works for GRangesList with multiple chromosomes", {
+  granges <- import(
+    source_multitrack, 
+    which = GRanges(
+      seqnames = c("chr1", "chrM"), 
+      ranges = IRanges(start = c(17027561, 1), end = c(17027564, 100))))
+  expect_equal(as.vector(seqnames(granges)), c("chr1", "chr1", "chrM"))
+  expect_equal(ranges(granges)[1], IRanges(start = 17027561, end = 17027562))
+  expect_equal(ranges(granges)[2], IRanges(start = 17027563, end = 17027564))
+  expect_equal(ranges(granges)[3], IRanges(start = 1, end = 100))
+  expect_equal(mcols(granges)$score[1], 1)
+  expect_equal(mcols(granges)$score[2], 2)
+  expect_equal(mcols(granges)$score[3], 0)
+})
+
+test_that("import() works for specific track", {
+  granges <- import(
+    source_multitrack, 
+    which = GRanges(
+      seqnames = "chr3", 
+      ranges = IRanges(start = 37011633, end = 37011640)),
+    track = "track2"
+  )
+  expect_true(all(mcols(granges) == data.frame(score = 2)))
+})
+
+test_that("import() works with custom metadata column name", {
+  granges <- import(
+    source_multitrack, 
+    which = GRanges(
+      seqnames = "chrM", 
+      ranges = IRanges(start = 1, end = 100)
+    ), 
+    colname = "new_column"
+  )
   expect_true(all(mcols(granges) == data.frame(new_column = 0)))
 })
 
@@ -322,23 +401,35 @@ test_that(
     query result",
   {
     expect_equal(
-      mean(source_example2, "chr3", 1, 5e+07),
-      mean(query(source_example2, "chr3", 1, 5e+07)$results)
+      mean(source_example2, chr = "chr3", start = 1, end = 5e+07),
+      mean(query(source_example2, chr = "chr3", start = 1, end = 5e+07)$results)
     )
   }
 )
 
 test_that("mean() returns 0 for a region with no data", {
-  expect_equal(mean(source_example2, "chr3", 1e+06, 2e+06), 0)
+  expect_equal(
+    mean(source_example2, chr = "chr3", start = 1e+06, end = 2e+06),
+    0
+  )
 })
 
 test_that("mean() works for a region with some empty positions and some data", {
-  expect_equal(mean(source_example2, "chr3", 37011631, 37011646), 2.125)
+  expect_equal(
+    mean(source_example2, chr = "chr3", start = 37011631, end = 37011646), 
+    2.125
+  )
 })
 
 test_that("mean() works for a region with multiple non-empty tracks", {
   expect_equal(
-    mean(source_multitrack, "chr3", 37011716, 37011720, track = "track2"),
+    mean(
+      source_multitrack, 
+      chr = "chr3", 
+      start = 37011716, 
+      end = 37011720, 
+      track = "track2"
+    ),
     20.4
   )
 })
